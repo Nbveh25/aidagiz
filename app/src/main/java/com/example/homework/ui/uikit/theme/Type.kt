@@ -1,4 +1,4 @@
-package com.example.homework.ui.theme
+package com.example.homework.ui.uikit.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
