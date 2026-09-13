@@ -17,7 +17,7 @@ class OverpassSource(
 ) {
     suspend fun getNearbyPlaces(
         location: GeoLocation,
-        radiusMeters: Int = 1000,
+        radiusMeters: Int = 3000,
         limit: Int = 100,
     ): List<OsmPlace> = withContext(Dispatchers.IO) {
         val query = overpassQuery(location.lat, location.lon, radiusMeters)

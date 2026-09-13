@@ -18,10 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,10 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.homework.entity.map.OsmPlace
-import com.example.homework.entity.map.formatDistance
 import com.example.homework.ui.uikit.theme.ForestGreen
-import com.example.homework.ui.uikit.theme.SheetWhite
 import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
 import com.example.homework.ui.uikit.theme.TextSecondary
@@ -139,13 +134,14 @@ fun LiveMapScreen(
             ) {
                 RecenterChip(onClick = viewModel::recenter)
             }
-            state.selectedPlace?.let { place ->
-                SelectedPlaceCard(
-                    place = place,
-                    distanceMeters = state.user?.let { place.distanceMetersTo(it) },
-                    onClose = { viewModel.selectPlace(null) },
-                )
-            }
+        }
+
+        state.selectedPlace?.let { place ->
+            PlaceDetailsBottomSheet(
+                place = place,
+                distanceMeters = state.user?.let { place.distanceMetersTo(it) },
+                onDismiss = { viewModel.selectPlace(null) },
+            )
         }
     }
 }
@@ -230,51 +226,4 @@ private fun BannerButton(
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
-}
-
-@Composable
-private fun SelectedPlaceCard(
-    place: OsmPlace,
-    distanceMeters: Int?,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(16.dp, RoundedCornerShape(22.dp))
-            .clip(RoundedCornerShape(22.dp))
-            .background(SheetWhite)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(Color(0x14163833)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = place.category.emoji, fontSize = 26.sp)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = place.name,
-                color = TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            val details = buildList {
-                add(place.category.label)
-                if (distanceMeters != null) add(formatDistance(distanceMeters))
-                place.openingHours?.let { add(it) }
-            }
-            Text(
-                text = details.joinToString(" · "),
-                color = TextSecondary,
-                fontSize = 13.sp,
-            )
-        }
-    }
 }
