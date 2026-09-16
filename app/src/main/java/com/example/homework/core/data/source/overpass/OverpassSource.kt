@@ -11,14 +11,21 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class OverpassSource(
-    private val httpClient: OkHttpClient,
+    httpClient: OkHttpClient,
 ) {
+    private val client = httpClient.newBuilder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .build()
+
     suspend fun getNearbyPlaces(
         location: GeoLocation,
-        radiusMeters: Int = 3000,
-        limit: Int = 100,
+        radiusMeters: Int = 5000,
+        limit: Int = 300,
     ): List<OsmPlace> = withContext(Dispatchers.IO) {
         val query = overpassQuery(location.lat, location.lon, radiusMeters)
         val places = parsePlaces(fetchJson(query))
@@ -34,7 +41,9 @@ class OverpassSource(
         for (endpoint in endpoints) {
             try {
                 return post(endpoint, body)
-            } catch (error: Exception) {
+            } catch (error: RetryableOverpassException) {
+                lastError = error
+            } catch (error: IOException) {
                 lastError = error
             }
         }
@@ -48,10 +57,14 @@ class OverpassSource(
             .header("Accept", "application/json")
             .post(body)
             .build()
-        httpClient.newCall(request).execute().use { response ->
+        client.newCall(request).execute().use { response ->
             val payload = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                throw IOException("Overpass HTTP ${response.code}: ${payload.take(180)}")
+                val message = "Overpass HTTP ${response.code}: ${payload.take(180)}"
+                if (response.code == 406 || response.code == 429 || response.code >= 500) {
+                    throw RetryableOverpassException(message)
+                }
+                throw IOException(message)
             }
             return payload
         }
@@ -66,14 +79,20 @@ class OverpassSource(
             val name = tags.optString("name:ru").ifBlank { tags.optString("name") }
             if (name.isBlank()) continue
             val (lat, lon) = coordinatesOf(element) ?: continue
-            val osmType = element.optString("type")
+            val osmType = element.optString("type").ifBlank { "node" }
             val osmId = element.optLong("id")
             places += OsmPlace(
-                id = uniqueOsmId(osmType, osmId),
+                id = "$osmType-$osmId",
                 name = name,
                 lat = lat,
                 lon = lon,
-                category = categorize(tags),
+                category = PlaceCategory.fromOsmTags(
+                    tourism = tags.optString("tourism"),
+                    historic = tags.optString("historic"),
+                    amenity = tags.optString("amenity"),
+                    leisure = tags.optString("leisure"),
+                    religion = tags.optString("religion"),
+                ),
                 openingHours = tags.optString("opening_hours").ifBlank { null },
             )
         }
@@ -87,35 +106,6 @@ class OverpassSource(
         val center = element.optJSONObject("center") ?: return null
         if (!center.has("lat") || !center.has("lon")) return null
         return center.getDouble("lat") to center.getDouble("lon")
-    }
-
-    private fun categorize(tags: JSONObject): PlaceCategory {
-        val amenity = tags.optString("amenity")
-        val tourism = tags.optString("tourism")
-        val historic = tags.optString("historic")
-        val leisure = tags.optString("leisure")
-        val religion = tags.optString("religion")
-        return when {
-            amenity == "place_of_worship" && religion == "muslim" -> PlaceCategory.Mosque
-            amenity == "place_of_worship" -> PlaceCategory.Temple
-            amenity == "museum" || tourism == "museum" -> PlaceCategory.Museum
-            amenity == "theatre" -> PlaceCategory.Theatre
-            amenity == "cafe" -> PlaceCategory.Cafe
-            amenity == "restaurant" -> PlaceCategory.Restaurant
-            leisure == "park" || leisure == "garden" -> PlaceCategory.Park
-            historic.isNotBlank() -> PlaceCategory.Historic
-            tourism.isNotBlank() -> PlaceCategory.Attraction
-            else -> PlaceCategory.Other
-        }
-    }
-
-    private fun uniqueOsmId(type: String, id: Long): Long {
-        val typeCode = when (type) {
-            "way" -> 1L
-            "relation" -> 2L
-            else -> 0L
-        }
-        return typeCode * 1_000_000_000_000L + id
     }
 
     private fun requestBody(query: String) =
@@ -139,3 +129,5 @@ class OverpassSource(
         )
     }
 }
+
+private class RetryableOverpassException(message: String) : IOException(message)

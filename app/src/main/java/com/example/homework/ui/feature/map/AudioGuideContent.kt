@@ -1,7 +1,6 @@
 package com.example.homework.ui.feature.map
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,9 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.NearMe
@@ -44,12 +45,10 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -57,14 +56,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.homework.R
+import com.example.homework.entity.guide.AiGuideNarration
+import com.example.homework.entity.guide.AiGuidePlayback
 import com.example.homework.entity.map.OsmPlace
+import com.example.homework.entity.place.PlaceDetails
+import com.example.homework.entity.tour.TourProgress
 import com.example.homework.ui.uikit.theme.ForestGreenDeep
 import com.example.homework.ui.uikit.theme.IconDark
 import com.example.homework.ui.uikit.theme.ProgressTrack
@@ -77,12 +77,22 @@ import com.example.homework.ui.uikit.theme.UserBlue
 @Composable
 fun AudioGuideContent(
     place: OsmPlace,
+    details: PlaceDetails?,
+    narration: AiGuideNarration?,
+    playback: AiGuidePlayback,
+    tourProgress: TourProgress,
     onBack: () -> Unit,
     onClose: () -> Unit,
+    onTogglePlayback: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onToggleMute: () -> Unit,
+    onPreviousStop: () -> Unit,
+    onNextStop: () -> Unit,
+    onContinueRoute: () -> Unit,
+    onRecenter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showFullText by remember { mutableStateOf(false) }
-    var playbackProgress by remember { mutableFloatStateOf(0.36f) }
+    var showFullText by remember(place.id) { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         MapRoundIconButton(
@@ -102,14 +112,18 @@ fun AudioGuideContent(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             MapRoundIconButton(
-                icon = Icons.AutoMirrored.Filled.VolumeUp,
-                contentDescription = "Звук",
-                onClick = {},
+                icon = if (playback.isMuted) {
+                    Icons.Filled.VolumeOff
+                } else {
+                    Icons.AutoMirrored.Filled.VolumeUp
+                },
+                contentDescription = if (playback.isMuted) "Включить звук" else "Выключить звук",
+                onClick = onToggleMute,
             )
             MapRoundIconButton(
                 icon = Icons.Outlined.NearMe,
                 contentDescription = "Навигация",
-                onClick = {},
+                onClick = onRecenter,
             )
         }
         Card(
@@ -127,8 +141,8 @@ fun AudioGuideContent(
                     .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 88.dp),
             ) {
                 GuideProgressRow(
-                    current = 4,
-                    total = 8,
+                    current = tourProgress.currentStep,
+                    total = tourProgress.totalSteps,
                     onBack = onBack,
                     onClose = onClose,
                 )
@@ -137,7 +151,7 @@ fun AudioGuideContent(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                 ) {
                     Text(
-                        text = place.name.ifBlank { "Мечеть Кул Шариф" },
+                        text = details?.name ?: place.name,
                         color = TextPrimary,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -145,9 +159,9 @@ fun AudioGuideContent(
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GuideChip("История")
-                        GuideChip("Архитектура")
-                        GuideChip("Татарская культура")
+                        (details?.tags ?: emptyList()).forEach { tag ->
+                            GuideChip(tag)
+                        }
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -159,7 +173,7 @@ fun AudioGuideContent(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = "Казанский Кремль",
+                            text = details?.address.orEmpty(),
                             color = TextSecondary,
                             fontSize = 13.sp,
                         )
@@ -172,11 +186,16 @@ fun AudioGuideContent(
                         fontWeight = FontWeight.Medium,
                     )
                     Spacer(Modifier.height(12.dp))
-                    AudioPlayerRow()
+                    AudioPlayerRow(
+                        isPlaying = playback.isPlaying,
+                        onTogglePlayback = onTogglePlayback,
+                        onPrevious = onPreviousStop,
+                        onNext = onNextStop,
+                    )
                     Spacer(Modifier.height(8.dp))
                     Slider(
-                        value = playbackProgress,
-                        onValueChange = { playbackProgress = it },
+                        value = playback.progress,
+                        onValueChange = onSeek,
                         colors = SliderDefaults.colors(
                             thumbColor = ForestGreenDeep,
                             activeTrackColor = ForestGreenDeep,
@@ -184,13 +203,13 @@ fun AudioGuideContent(
                         ),
                     )
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("02:14", color = TextSecondary, fontSize = 12.sp)
+                        Text(playback.positionLabel, color = TextSecondary, fontSize = 12.sp)
                         Spacer(Modifier.weight(1f))
-                        Text("-03:56", color = TextSecondary, fontSize = 12.sp)
+                        Text(playback.remainingLabel, color = TextSecondary, fontSize = 12.sp)
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = KUL_SHARIF_DESCRIPTION,
+                        text = narration?.text.orEmpty(),
                         color = TextSecondary,
                         fontSize = 14.sp,
                         lineHeight = 20.sp,
@@ -219,7 +238,6 @@ fun AudioGuideContent(
             }
         }
         ExtendedFloatingActionButton(
-            onClick = {},
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -238,6 +256,7 @@ fun AudioGuideContent(
                     fontWeight = FontWeight.Medium,
                 )
             },
+            onClick = onContinueRoute,
         )
     }
 }
@@ -268,7 +287,7 @@ private fun GuideProgressRow(
         )
         Spacer(Modifier.width(10.dp))
         LinearProgressIndicator(
-            progress = { current / total.toFloat() },
+            progress = { if (total == 0) 0f else current / total.toFloat() },
             modifier = Modifier
                 .weight(1f)
                 .height(6.dp)
@@ -302,13 +321,18 @@ private fun GuideChip(label: String) {
 }
 
 @Composable
-private fun AudioPlayerRow() {
+private fun AudioPlayerRow(
+    isPlaying: Boolean,
+    onTogglePlayback: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = {}) {
+        IconButton(onClick = onPrevious) {
             Icon(
                 imageVector = Icons.Filled.SkipPrevious,
                 contentDescription = "Предыдущий",
@@ -321,6 +345,7 @@ private fun AudioPlayerRow() {
                 .weight(1f)
                 .height(36.dp)
                 .padding(horizontal = 8.dp),
+            played = isPlaying,
         )
         Box(
             modifier = Modifier
@@ -328,12 +353,12 @@ private fun AudioPlayerRow() {
                 .shadow(6.dp, CircleShape)
                 .clip(CircleShape)
                 .background(ForestGreenDeep)
-                .clickable(onClick = {}),
+                .clickable(onClick = onTogglePlayback),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.Pause,
-                contentDescription = "Пауза",
+                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = if (isPlaying) "Пауза" else "Слушать",
                 tint = TextOnForest,
                 modifier = Modifier.size(28.dp),
             )
@@ -345,7 +370,7 @@ private fun AudioPlayerRow() {
                 .padding(horizontal = 8.dp),
             played = false,
         )
-        IconButton(onClick = {}) {
+        IconButton(onClick = onNext) {
             Icon(
                 imageVector = Icons.Filled.SkipNext,
                 contentDescription = "Следующий",
@@ -436,12 +461,3 @@ private fun MapRoundIconButton(
         )
     }
 }
-
-private const val KUL_SHARIF_DESCRIPTION =
-    "Мечеть Кул Шариф — один из главных символов современной Казани. " +
-        "Её голубые купола и высокие минареты видны из разных точек Кремля и напоминают " +
-        "о возрождении татарской культуры на рубеже веков. Внутри светлый зал, орнамент " +
-        "и тишина, в которой хорошо слышен собственный шаг. Стоит обойти здание кругом: " +
-        "с разных сторон меняется масштаб купола и ритм арок. AI-гид рассказывает, как " +
-        "на этом месте стояла старая мечеть ханской Казани и почему новое здание стало " +
-        "образом города для гостей и жителей."

@@ -1,9 +1,7 @@
 package com.example.homework.ui.feature.map
 
 import android.annotation.SuppressLint
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -40,16 +39,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.homework.R
+import coil.compose.AsyncImage
+import com.example.homework.entity.guide.AiGuideNarration
+import com.example.homework.entity.guide.AiGuidePlayback
 import com.example.homework.entity.map.OsmPlace
-import com.example.homework.entity.map.PlaceCategory
 import com.example.homework.entity.map.formatDistance
+import com.example.homework.entity.place.PlaceDetails
+import com.example.homework.entity.tour.TourProgress
 import com.example.homework.ui.uikit.theme.ForestGreenDeep
 import com.example.homework.ui.uikit.theme.SheetWhite
 import com.example.homework.ui.uikit.theme.TextOnForest
@@ -61,10 +62,32 @@ import com.example.homework.ui.uikit.theme.TextSecondary
 @Composable
 fun PlaceDetailsBottomSheet(
     place: OsmPlace,
+    details: PlaceDetails?,
+    narration: AiGuideNarration?,
+    playback: AiGuidePlayback,
+    tourProgress: TourProgress,
     distanceMeters: Int?,
+    isGuideOpen: Boolean,
+    inRoute: Boolean,
     onDismiss: () -> Unit,
+    onToggleRoute: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onCloseGuide: () -> Unit,
+    onMarkVisited: () -> Unit,
+    onTogglePlayback: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onToggleMute: () -> Unit,
+    onPreviousStop: () -> Unit,
+    onNextStop: () -> Unit,
+    onContinueRoute: () -> Unit,
+    onRecenter: () -> Unit,
 ) {
-    var sheetSize by remember { mutableStateOf(PlaceSheetSize.Peek) }
+    var detailsExpanded by remember(place.id) { mutableStateOf(false) }
+    val sheetSize = when {
+        isGuideOpen -> PlaceSheetSize.Guide
+        detailsExpanded -> PlaceSheetSize.Details
+        else -> PlaceSheetSize.Peek
+    }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
     val targetHeight = when (sheetSize) {
@@ -75,10 +98,10 @@ fun PlaceDetailsBottomSheet(
 
     val sheetHeight by animateDpAsState(targetValue = targetHeight, label = "placeSheetHeight")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val details = buildList {
+    val meta = buildList {
         add(place.category.label)
         if (distanceMeters != null) add(formatDistance(distanceMeters))
-        place.openingHours?.let { add(it) }
+        (details?.openingHours ?: place.openingHours)?.let { add(it) }
     }.joinToString(" · ")
 
     ModalBottomSheet(
@@ -95,49 +118,68 @@ fun PlaceDetailsBottomSheet(
         if (sheetSize == PlaceSheetSize.Guide) {
             AudioGuideContent(
                 place = place,
-                onBack = { sheetSize = PlaceSheetSize.Details },
+                details = details,
+                narration = narration,
+                playback = playback,
+                tourProgress = tourProgress,
+                onBack = {
+                    detailsExpanded = true
+                    onCloseGuide()
+                },
                 onClose = onDismiss,
+                onTogglePlayback = onTogglePlayback,
+                onSeek = onSeek,
+                onToggleMute = onToggleMute,
+                onPreviousStop = onPreviousStop,
+                onNextStop = onNextStop,
+                onContinueRoute = onContinueRoute,
+                onRecenter = onRecenter,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(sheetHeight),
             )
         } else {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(sheetHeight)
-                .navigationBarsPadding()
-                .padding(
-                    start = 20.dp,
-                    end = 20.dp,
-                    top = 10.dp,
-                    bottom = 16.dp,
-                ),
-        ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 12.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFFD5D3CE)),
-            )
-            if (sheetSize == PlaceSheetSize.Details) {
-                ExpandedPlaceContent(
-                    place = place,
-                    details = details,
-                    onCollapse = { sheetSize = PlaceSheetSize.Peek },
-                    onListen = { sheetSize = PlaceSheetSize.Guide },
-                    modifier = Modifier.weight(1f),
+                    .fillMaxWidth()
+                    .height(sheetHeight)
+                    .navigationBarsPadding()
+                    .padding(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 10.dp,
+                        bottom = 16.dp,
+                    ),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 12.dp)
+                        .size(width = 36.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFFD5D3CE)),
                 )
-            } else {
-                CollapsedPlaceContent(
-                    place = place,
-                    details = details,
-                    onExpand = { sheetSize = PlaceSheetSize.Details },
-                )
+                if (sheetSize == PlaceSheetSize.Details) {
+                    ExpandedPlaceContent(
+                        place = place,
+                        details = details,
+                        meta = meta,
+                        onCollapse = { detailsExpanded = false },
+                        onListen = onOpenGuide,
+                        onToggleRoute = onToggleRoute,
+                        inRoute = inRoute,
+                        onMarkVisited = onMarkVisited,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    CollapsedPlaceContent(
+                        place = place,
+                        details = details,
+                        meta = meta,
+                        onExpand = { detailsExpanded = true },
+                    )
+                }
             }
-        }
         }
     }
 }
@@ -151,17 +193,17 @@ private enum class PlaceSheetSize {
 @Composable
 private fun CollapsedPlaceContent(
     place: OsmPlace,
-    details: String,
+    details: PlaceDetails?,
+    meta: String,
     onExpand: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = painterResource(mockPhotoRes(place)),
+        PlacePhoto(
+            imageUrl = details?.imageUrl ?: place.imageUrl,
             contentDescription = place.name,
-            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(76.dp)
                 .clip(RoundedCornerShape(16.dp)),
@@ -169,7 +211,7 @@ private fun CollapsedPlaceContent(
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = place.name,
+                text = details?.name ?: place.name,
                 color = TextPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -179,7 +221,7 @@ private fun CollapsedPlaceContent(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = mockDescription(place),
+                text = details?.shortDescription.orEmpty(),
                 color = TextSecondary,
                 fontSize = 13.sp,
                 lineHeight = 18.sp,
@@ -198,7 +240,7 @@ private fun CollapsedPlaceContent(
     }
     Spacer(Modifier.height(14.dp))
     Text(
-        text = details,
+        text = meta,
         color = TextSecondary,
         fontSize = 13.sp,
     )
@@ -207,28 +249,32 @@ private fun CollapsedPlaceContent(
 @Composable
 private fun ExpandedPlaceContent(
     place: OsmPlace,
-    details: String,
+    details: PlaceDetails?,
+    meta: String,
     onCollapse: () -> Unit,
     onListen: () -> Unit,
+    onToggleRoute: () -> Unit,
+    inRoute: Boolean,
+    onMarkVisited: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        PlacePhoto(
+            imageUrl = details?.imageUrl ?: place.imageUrl,
+            contentDescription = place.name,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(18.dp)),
+        )
+        Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
         ) {
-            Image(
-                painter = painterResource(mockPhotoRes(place)),
-                contentDescription = place.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(112.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-            )
-            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = place.name,
+                    text = details?.name ?: place.name,
                     color = TextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -236,7 +282,7 @@ private fun ExpandedPlaceContent(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = details,
+                    text = meta,
                     color = TextSecondary,
                     fontSize = 13.sp,
                 )
@@ -259,7 +305,7 @@ private fun ExpandedPlaceContent(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = mockGuideText(place),
+            text = details?.fullDescription.orEmpty(),
             color = TextSecondary,
             fontSize = 13.sp,
             lineHeight = 18.sp,
@@ -270,6 +316,11 @@ private fun ExpandedPlaceContent(
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             PlaceSheetButton(
+                label = if (inRoute) "Убрать из маршрута" else "Добавить в маршрут",
+                filled = !inRoute,
+                onClick = onToggleRoute,
+            )
+            PlaceSheetButton(
                 label = "Слушать AI-гида",
                 filled = true,
                 onClick = onListen,
@@ -277,7 +328,7 @@ private fun ExpandedPlaceContent(
             PlaceSheetButton(
                 label = "Я посмотрел, дальше",
                 filled = false,
-                onClick = {},
+                onClick = onMarkVisited,
             )
         }
     }
@@ -304,65 +355,29 @@ private fun PlaceSheetButton(
     )
 }
 
-@DrawableRes
-private fun mockPhotoRes(place: OsmPlace): Int = when (place.category) {
-    PlaceCategory.Mosque -> R.drawable.photo_kul_sharif
-    PlaceCategory.Park -> R.drawable.photo_sloboda
-    PlaceCategory.Cafe, PlaceCategory.Restaurant -> R.drawable.photo_bauman
-    PlaceCategory.Historic, PlaceCategory.Attraction, PlaceCategory.Museum -> R.drawable.photo_kremlin
-    else -> when ((place.id % 4).toInt()) {
-        0 -> R.drawable.photo_kremlin
-        1 -> R.drawable.photo_kul_sharif
-        2 -> R.drawable.photo_bauman
-        else -> R.drawable.photo_sloboda
+@Composable
+private fun PlacePhoto(
+    imageUrl: String?,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.background(Color(0xFFE7E4DC)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (imageUrl.isNullOrBlank()) {
+            Text(
+                text = "Нет фото",
+                color = TextSecondary,
+                fontSize = 12.sp,
+            )
+        } else {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
-}
-
-private fun mockDescription(place: OsmPlace): String = when (place.category) {
-    PlaceCategory.Mosque -> "Историческая мечеть Казани. Архитектура и тихая атмосфера двора."
-    PlaceCategory.Temple -> "Храм с богатой историей. Стоит зайти и осмотреть интерьер."
-    PlaceCategory.Museum -> "Музей о городе и его культуре. Короткий визит займёт около часа."
-    PlaceCategory.Theatre -> "Театр с красивым фасадом. Удобная точка на прогулке по центру."
-    PlaceCategory.Cafe -> "Уютное кафе рядом. Хорошее место передохнуть и перекусить."
-    PlaceCategory.Restaurant -> "Ресторан с локальной кухней. Можно запланировать обед в маршруте."
-    PlaceCategory.Park -> "Зелёная зона для короткой прогулки и паузы между точками."
-    PlaceCategory.Historic -> "Историческое место Казани. Короткий рассказ о прошлом города."
-    PlaceCategory.Attraction -> "Популярная точка маршрута. Несколько минут на осмотр и фото."
-    PlaceCategory.Other -> "Интересная точка поблизости. Можно добавить в маршрут."
-}
-
-private fun mockGuideText(place: OsmPlace): String {
-    val intro = mockDescription(place)
-    val story = when (place.category) {
-        PlaceCategory.Mosque ->
-            "Купола и минареты видны издалека. Во дворе тише, чем на улице: слышен ветер и шаги. Обратите внимание на орнамент портала и на то, как свет падает на стены ближе к закату."
-
-        PlaceCategory.Temple ->
-            "Фасад держит ритм старого города. Внутри обычно прохладнее, голоса приглушены. Стоит остановиться у входа и сравнить декор с соседними зданиями той же эпохи."
-
-        PlaceCategory.Museum ->
-            "Коллекция собрана так, чтобы за час сложилась картина города: быт, ремёсла, лица. Не гонитесь за всеми залами — выберите два сюжета и рассмотрите их спокойно."
-
-        PlaceCategory.Theatre ->
-            "Театр здесь не только сцена, но и площадь перед ним. Вечером фасад подсвечивают, днём можно обойти здание и посмотреть на детали карниза."
-
-        PlaceCategory.Cafe ->
-            "Место для паузы: чай, эчпочмак, короткая остановка между точками маршрута. Если шумно у окна, сядьте глубже в зал — там обычно тише."
-
-        PlaceCategory.Restaurant ->
-            "Локальная кухня — часть прогулки, не отдельная программа. Закажите одно татарское блюдо и не затягивайте обед, если впереди ещё есть точки."
-
-        PlaceCategory.Park ->
-            "Дорожки расходятся от центральной аллеи. Сверните с главного пути на минуту: скамейки в тени и вид на воду часто лучше, чем у входа."
-
-        PlaceCategory.Historic ->
-            "Камень и таблички хранят слой за слоем: ханская Казань, губернский город, советские годы. Прочитайте одну табличку вслух — маршрут сразу становится рассказом."
-
-        PlaceCategory.Attraction ->
-            "Сюда приходят за кадром, но место живёт и без фото. Обойдите точку кругом: задний ракурс часто спокойнее и ближе к настоящему масштабу."
-
-        PlaceCategory.Other ->
-            "Точка не из парадного списка, зато рядом с маршрутом. Задержитесь на пару минут: такие места связывают известные остановки в цельный путь."
-    }
-    return "$intro\n\n$story\n\nТак AI-гид помогает не торопиться: один взгляд, одна деталь, и можно идти дальше."
 }

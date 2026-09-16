@@ -7,6 +7,16 @@ import kotlin.math.sqrt
 
 val KazanCenter = GeoLocation(lat = 55.7908, lon = 49.1144)
 
+const val KazanMinLat = 55.55
+const val KazanMaxLat = 56.05
+const val KazanMinLon = 48.75
+const val KazanMaxLon = 49.45
+
+fun GeoLocation.clampToKazan(): GeoLocation = copy(
+    lat = lat.coerceIn(KazanMinLat, KazanMaxLat),
+    lon = lon.coerceIn(KazanMinLon, KazanMaxLon),
+)
+
 fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Int {
     val earthRadius = 6_371_000.0
     val dLat = Math.toRadians(lat2 - lat1)

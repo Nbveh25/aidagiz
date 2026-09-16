@@ -67,14 +67,36 @@ fun LiveMapScreen(
         }
     }
 
+    fun openYandex() {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.yandexUrl)))
+    }
+
+    fun shareRoute() {
+        context.startActivity(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, state.yandexUrl)
+                },
+                "Поделиться маршрутом",
+            ),
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         OsmMap(
             center = state.mapCenter,
             user = state.user,
-            places = state.places,
+            places = state.filteredPlaces,
+            routePlaces = state.routePlaces,
             selectedPlaceId = state.selectedPlaceId,
+            routeGeometry = state.route?.geometry,
+            routeDirty = state.routeDirty,
+            followUser = state.followUser,
             recenterToken = state.recenterToken,
+            fitRouteToken = state.fitRouteToken,
             onPlaceSelected = viewModel::selectPlace,
+            onUserMapInteraction = viewModel::onUserMapInteraction,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -89,11 +111,18 @@ fun LiveMapScreen(
                 title = if (state.user != null) "Вы здесь" else "Казань",
                 subtitle = when {
                     state.isLoadingPlaces -> "Загружаем места рядом…"
-                    state.places.isNotEmpty() -> "${state.places.size} мест рядом"
+                    state.filteredPlaces.isNotEmpty() -> "${state.filteredPlaces.size} мест рядом"
                     else -> "Места появятся после ответа Overpass"
                 },
                 loading = state.isLoadingPlaces,
             )
+            if (!state.navigation.isActive) {
+                PlaceFilterBar(
+                    places = state.places,
+                    selected = state.placeFilter,
+                    onSelect = viewModel::setPlaceFilter,
+                )
+            }
             if (!state.permissionGranted) {
                 PermissionBanner(
                     onAllow = {
@@ -125,23 +154,65 @@ fun LiveMapScreen(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                RecenterChip(onClick = viewModel::recenter)
+            RecenterChip(onClick = viewModel::recenter)
+            if (state.navigation.isActive) {
+                NavigationHud(
+                    navigation = state.navigation,
+                    currentPlaceName = state.routePlaces.getOrNull(state.navigation.placeIndex)?.name,
+                    onPauseResume = viewModel::pauseOrResumeNavigation,
+                    onRecenter = viewModel::recenter,
+                    onRetry = viewModel::retryNavigation,
+                    onNext = viewModel::nextNavigationPlace,
+                    onExit = viewModel::stopNavigation,
+                )
+            } else if (state.selectedPlace == null) {
+                RouteBuilderPanel(
+                    routePlaces = state.routePlaces,
+                    transportMode = state.transportMode,
+                    route = state.route,
+                    routeDirty = state.routeDirty,
+                    isBuilding = state.isBuildingRoute,
+                    expanded = state.routePanelExpanded,
+                    onToggleExpanded = viewModel::toggleRoutePanel,
+                    onRemove = viewModel::removeFromRoute,
+                    onDurationDelta = viewModel::changeVisitDuration,
+                    onTransportMode = viewModel::setTransportMode,
+                    onBuild = viewModel::buildRoute,
+                    onOptimize = viewModel::optimizeAndBuild,
+                    onOpenYandex = { openYandex() },
+                    onShare = { shareRoute() },
+                    onStartNavigation = viewModel::startNavigation,
+                )
             }
         }
 
-        state.selectedPlace?.let { place ->
-            PlaceDetailsBottomSheet(
-                place = place,
-                distanceMeters = state.user?.let { place.distanceMetersTo(it) },
-                onDismiss = { viewModel.selectPlace(null) },
-            )
+        if (!state.navigation.isActive) {
+            state.selectedPlace?.let { place ->
+                PlaceDetailsBottomSheet(
+                    place = place,
+                    details = state.placeDetails,
+                    narration = state.guideNarration,
+                    playback = state.guidePlayback,
+                    tourProgress = state.tourProgress,
+                    distanceMeters = state.user?.let { place.distanceMetersTo(it) },
+                    isGuideOpen = state.isGuideOpen,
+                    inRoute = state.selectedInRoute,
+                    onDismiss = { viewModel.selectPlace(null) },
+                    onToggleRoute = viewModel::toggleSelectedInRoute,
+                    onOpenGuide = viewModel::openGuide,
+                    onCloseGuide = viewModel::closeGuide,
+                    onMarkVisited = viewModel::markPlaceVisited,
+                    onTogglePlayback = viewModel::toggleGuidePlayback,
+                    onSeek = viewModel::seekGuide,
+                    onToggleMute = viewModel::toggleGuideSound,
+                    onPreviousStop = viewModel::goToPreviousStop,
+                    onNextStop = viewModel::goToNextStop,
+                    onContinueRoute = viewModel::goToNextStop,
+                    onRecenter = viewModel::recenter,
+                )
+            }
         }
     }
 }

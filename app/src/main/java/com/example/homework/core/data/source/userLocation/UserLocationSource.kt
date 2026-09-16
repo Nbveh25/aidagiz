@@ -56,8 +56,8 @@ class UserLocationSource(
         providers.forEach { provider ->
             manager.requestLocationUpdates(
                 provider,
-                2_000L,
-                5f,
+                1_000L,
+                1f,
                 listener,
                 Looper.getMainLooper(),
             )

@@ -1,16 +1,19 @@
 package com.example.homework
 
 import android.app.Application
+import androidx.core.content.edit
+import coil.ImageLoader
+import coil.ImageLoaderFactory
 import com.example.homework.di.appModules
+import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 import org.osmdroid.config.Configuration
 import java.io.File
-import androidx.core.content.edit
 
-class HomeworkApp : Application() {
+class HomeworkApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
@@ -21,6 +24,22 @@ class HomeworkApp : Application() {
         }
         setupOsmDroid()
     }
+
+    override fun newImageLoader(): ImageLoader =
+        ImageLoader.Builder(this)
+            .okHttpClient {
+                OkHttpClient.Builder()
+                    .addNetworkInterceptor { chain ->
+                        chain.proceed(
+                            chain.request().newBuilder()
+                                .header("User-Agent", OSM_USER_AGENT)
+                                .build(),
+                        )
+                    }
+                    .build()
+            }
+            .crossfade(true)
+            .build()
 
     private fun setupOsmDroid() {
         val prefs = getSharedPreferences("osmdroid", MODE_PRIVATE)

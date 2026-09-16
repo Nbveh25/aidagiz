@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.okhttp)
+    implementation(libs.coil.compose)
     implementation(libs.osmdroid.android)
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
