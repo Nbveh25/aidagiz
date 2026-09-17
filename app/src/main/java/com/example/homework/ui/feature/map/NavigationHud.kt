@@ -17,12 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.homework.core.domain.navigation.formatNavigationDistance
+import com.example.homework.R
 import com.example.homework.entity.map.NavigationState
 import com.example.homework.entity.map.NavigationStatus
+import com.example.homework.ui.locale.localizedNavigationDistance
+import com.example.homework.ui.locale.navigationStatusLabel
 import com.example.homework.ui.uikit.theme.ForestGreen
 import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
@@ -48,20 +51,21 @@ fun NavigationHud(
             .padding(14.dp),
     ) {
         Text(
-            text = currentPlaceName?.let { "К точке: $it" } ?: "Навигация",
+            text = currentPlaceName?.let { stringResource(R.string.nav_to_place, it) }
+                ?: stringResource(R.string.nav_title),
             color = TextSecondary,
             fontSize = 12.sp,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = navigation.instruction.ifBlank { statusLabel(navigation.status) },
+            text = navigation.instruction.ifBlank { navigationStatusLabel(navigation.status) },
             color = TextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
         )
         navigation.distanceToPlaceMeters?.let { meters ->
             Text(
-                text = formatNavigationDistance(meters.toDouble()),
+                text = localizedNavigationDistance(meters.toDouble()),
                 color = ForestGreen,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
@@ -82,58 +86,51 @@ fun NavigationHud(
             when (navigation.status) {
                 NavigationStatus.Error, NavigationStatus.WaitingLocation ->
                     HudButton(
-                        label = "Повторить",
+                        label = stringResource(R.string.action_retry),
                         onClick = onRetry,
                     )
 
                 NavigationStatus.Arrived ->
                     HudButton(
-                        label = "Далее",
+                        label = stringResource(R.string.nav_next),
                         onClick = onNext,
                     )
 
                 NavigationStatus.Finished ->
                     HudButton(
-                        label = "Закрыть",
+                        label = stringResource(R.string.nav_close),
                         onClick = onExit,
                     )
 
                 NavigationStatus.Paused ->
                     HudButton(
-                        label = "Продолжить",
+                        label = stringResource(R.string.nav_resume),
                         onClick = onPauseResume,
                     )
 
                 else ->
                     HudButton(
-                        label = if (navigation.status == NavigationStatus.Navigating) "Пауза" else "Ждём…",
+                        label = if (navigation.status == NavigationStatus.Navigating) {
+                            stringResource(R.string.nav_pause)
+                        } else {
+                            stringResource(R.string.nav_waiting)
+                        },
                         onClick = onPauseResume,
                         enabled = navigation.status == NavigationStatus.Navigating,
                     )
             }
             HudButton(
-                label = "Я",
+                label = stringResource(R.string.nav_me),
                 onClick = onRecenter,
                 filled = false,
             )
             HudButton(
-                label = "Выйти",
+                label = stringResource(R.string.nav_exit),
                 onClick = onExit,
                 filled = false,
             )
         }
     }
-}
-
-private fun statusLabel(status: NavigationStatus): String = when (status) {
-    NavigationStatus.WaitingLocation -> "Ждём геолокацию"
-    NavigationStatus.BuildingRoute -> "Строим маршрут"
-    NavigationStatus.Navigating -> "Навигация"
-    NavigationStatus.Paused -> "Пауза"
-    NavigationStatus.Arrived -> "Вы на месте"
-    NavigationStatus.Finished -> "Маршрут завершён"
-    NavigationStatus.Error -> "Ошибка маршрута"
-    NavigationStatus.Idle -> "Навигация"
 }
 
 @Composable

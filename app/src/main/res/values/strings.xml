@@ -1,3 +1,154 @@
 <resources>
-    <string name="app_name">homework</string>
+    <string name="app_name">Казань</string>
+
+    <string name="language_russian">РУ</string>
+    <string name="language_tatar">ТТ</string>
+    <string name="language_content_description">Язык приложения</string>
+
+    <string name="status_here">Вы здесь</string>
+    <string name="status_kazan">Казань</string>
+    <string name="status_loading_places">Загружаем места рядом…</string>
+    <plurals name="status_places_nearby">
+        <item quantity="one">%d место рядом</item>
+        <item quantity="few">%d места рядом</item>
+        <item quantity="many">%d мест рядом</item>
+        <item quantity="other">%d мест рядом</item>
+    </plurals>
+    <string name="status_places_empty">Места появятся после загрузки</string>
+
+    <string name="permission_title">Нужен доступ к геолокации</string>
+    <string name="permission_body">Так карта покажет, где вы сейчас, и подгрузит места вокруг.</string>
+    <string name="permission_allow">Разрешить</string>
+    <string name="permission_settings">Настройки</string>
+    <string name="action_retry">Повторить</string>
+    <string name="action_recenter">Центр</string>
+    <string name="share_route">Поделиться маршрутом</string>
+
+    <string name="filter_all">Все</string>
+    <string name="filter_history">История</string>
+    <string name="filter_culture">Культура</string>
+    <string name="filter_food">Еда</string>
+    <string name="filter_museums">Музеи</string>
+    <string name="filter_nature">Природа</string>
+    <string name="filter_viewpoints">Виды</string>
+
+    <string name="category_mosque">Мечеть</string>
+    <string name="category_temple">Храм</string>
+    <string name="category_museum">Музей</string>
+    <string name="category_gallery">Галерея</string>
+    <string name="category_arts_centre">Арт-центр</string>
+    <string name="category_artwork">Искусство</string>
+    <string name="category_theatre">Театр</string>
+    <string name="category_cafe">Кафе</string>
+    <string name="category_restaurant">Ресторан</string>
+    <string name="category_park">Парк</string>
+    <string name="category_garden">Сад</string>
+    <string name="category_historic">История</string>
+    <string name="category_attraction">Место</string>
+    <string name="category_viewpoint">Смотровая</string>
+    <string name="category_other">Место</string>
+
+    <string name="transport_walking">Пешком</string>
+    <string name="transport_cycling">Вело</string>
+    <string name="transport_driving">Авто</string>
+    <string name="transport_transit">Транспорт</string>
+
+    <string name="route_title">Маршрут</string>
+    <string name="route_title_count">Маршрут · %d</string>
+    <string name="route_building">Строим линию…</string>
+    <string name="route_dirty">Маршрут устарел — постройте снова</string>
+    <string name="route_summary">%1$s · %2$d мин</string>
+    <string name="route_ready">Добавлены точки, можно построить</string>
+    <string name="route_add_places">Добавьте места с карты</string>
+    <string name="route_hide">Скрыть</string>
+    <string name="route_show">Открыть</string>
+    <string name="route_empty">Точек пока нет</string>
+    <string name="route_build">Построить</string>
+    <string name="route_optimize">Оптимизировать</string>
+    <string name="route_yandex">Яндекс</string>
+    <string name="route_share">Поделиться</string>
+    <string name="route_start_nav">Начать навигацию</string>
+    <string name="route_transit_hint">Общественный транспорт считается в Яндекс Картах.</string>
+    <string name="route_stop_meta">%1$d мин · %2$s</string>
+    <string name="distance_meters">%d м</string>
+    <string name="distance_kilometers">%.1f км</string>
+
+    <string name="place_more">Подробнее</string>
+    <string name="place_collapse">Свернуть</string>
+    <string name="place_ai_guide">AI-гид</string>
+    <string name="place_add_to_route">Добавить в маршрут</string>
+    <string name="place_remove_from_route">Убрать из маршрута</string>
+    <string name="place_listen_guide">Слушать AI-гида</string>
+    <string name="place_mark_visited">Я посмотрел, дальше</string>
+    <string name="place_no_photo">Нет фото</string>
+
+    <string name="guide_back">Назад</string>
+    <string name="guide_unmute">Включить звук</string>
+    <string name="guide_mute">Выключить звук</string>
+    <string name="guide_navigation">Навигация</string>
+    <string name="guide_speaking">Сейчас рассказывает AI-гид</string>
+    <string name="guide_show_text">Показать весь текст</string>
+    <string name="guide_hide_text">Свернуть текст</string>
+    <string name="guide_continue">Дальше к маршруту</string>
+    <string name="guide_close">Закрыть</string>
+    <string name="guide_previous">Предыдущий</string>
+    <string name="guide_next">Следующий</string>
+    <string name="guide_pause">Пауза</string>
+    <string name="guide_play">Слушать</string>
+    <string name="guide_progress">%1$d из %2$d</string>
+    <string name="guide_marker_kremlin">Кремлёвская</string>
+
+    <string name="nav_to_place">К точке: %s</string>
+    <string name="nav_title">Навигация</string>
+    <string name="nav_next">Далее</string>
+    <string name="nav_close">Закрыть</string>
+    <string name="nav_resume">Продолжить</string>
+    <string name="nav_pause">Пауза</string>
+    <string name="nav_waiting">Ждём…</string>
+    <string name="nav_me">Я</string>
+    <string name="nav_exit">Выйти</string>
+    <string name="nav_status_waiting">Ждём геолокацию</string>
+    <string name="nav_status_building">Строим маршрут</string>
+    <string name="nav_status_navigating">Навигация</string>
+    <string name="nav_status_paused">Пауза</string>
+    <string name="nav_status_arrived">Вы на месте</string>
+    <string name="nav_status_finished">Маршрут завершён</string>
+    <string name="nav_status_error">Ошибка маршрута</string>
+    <string name="nav_building_walk">Строим пеший маршрут…</string>
+    <string name="nav_paused_message">Навигация на паузе</string>
+    <string name="nav_waiting_gps">Ждём геолокацию</string>
+    <string name="nav_finished">Маршрут завершён</string>
+    <string name="nav_building_next">Строим следующий участок…</string>
+    <string name="nav_go_to_point">Идите к точке</string>
+    <string name="nav_build_failed">Не удалось построить маршрут</string>
+    <string name="nav_weak_gps">Слабый GPS (%d м)</string>
+    <string name="nav_go_to_named">Идите к %s</string>
+    <string name="nav_arrived_named">Вы на месте: %s</string>
+    <string name="nav_rerouting">Вы свернули с маршрута, перестраиваем…</string>
+    <string name="nav_off_route">Сход с маршрута</string>
+    <string name="nav_mod_left">налево</string>
+    <string name="nav_mod_right">направо</string>
+    <string name="nav_mod_slight_left">левее</string>
+    <string name="nav_mod_slight_right">правее</string>
+    <string name="nav_mod_sharp_left">круто налево</string>
+    <string name="nav_mod_sharp_right">круто направо</string>
+    <string name="nav_mod_uturn">разворот</string>
+    <string name="nav_mod_straight">прямо</string>
+    <string name="nav_along"> по %s</string>
+    <string name="nav_depart">Начните движение%s</string>
+    <string name="nav_arrive">Вы на месте</string>
+    <string name="nav_continue">Продолжайте%s</string>
+    <string name="nav_fork">На развилке держитесь %s</string>
+    <string name="nav_fork_default">основного направления</string>
+    <string name="nav_turn">Поверните %1$s%2$s</string>
+    <string name="nav_turn_default">по маршруту</string>
+    <string name="nav_roundabout">На круге %s</string>
+    <string name="nav_roundabout_default">следуйте по кругу</string>
+    <string name="nav_turn_simple">Поверните %1$s%2$s</string>
+    <string name="nav_continue_route">Продолжайте маршрут%s</string>
+
+    <string name="error_optimize_route">Не удалось оптимизировать маршрут</string>
+    <string name="error_build_route">Не удалось построить маршрут</string>
+    <string name="error_load_places">Не удалось загрузить места</string>
+    <string name="error_http">Ошибка %d</string>
 </resources>

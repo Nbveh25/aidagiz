@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.homework.R
 import com.example.homework.ui.uikit.theme.IconDark
 import com.example.homework.ui.uikit.theme.TextPrimary
 
@@ -46,7 +48,7 @@ fun RecenterChip(
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "Центр",
+            text = stringResource(R.string.action_recenter),
             color = TextPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,

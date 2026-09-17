@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.VolumeOff
@@ -56,10 +57,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.homework.R
 import com.example.homework.entity.guide.AiGuideNarration
 import com.example.homework.entity.guide.AiGuidePlayback
 import com.example.homework.entity.map.OsmPlace
@@ -81,6 +84,7 @@ fun AudioGuideContent(
     narration: AiGuideNarration?,
     playback: AiGuidePlayback,
     tourProgress: TourProgress,
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onClose: () -> Unit,
     onTogglePlayback: () -> Unit,
@@ -90,55 +94,72 @@ fun AudioGuideContent(
     onNextStop: () -> Unit,
     onContinueRoute: () -> Unit,
     onRecenter: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var showFullText by remember(place.id) { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         MapRoundIconButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Назад",
+            contentDescription = stringResource(R.string.guide_back),
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
-                .padding(start = 16.dp, top = 12.dp),
+                .padding(
+                    start = 16.dp,
+                    top = 12.dp,
+                ),
         )
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(end = 16.dp, top = 12.dp),
+                .padding(
+                    end = 16.dp,
+                    top = 12.dp,
+                ),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             MapRoundIconButton(
                 icon = if (playback.isMuted) {
-                    Icons.Filled.VolumeOff
+                    Icons.AutoMirrored.Filled.VolumeOff
                 } else {
                     Icons.AutoMirrored.Filled.VolumeUp
                 },
-                contentDescription = if (playback.isMuted) "Включить звук" else "Выключить звук",
+                contentDescription = if (playback.isMuted) {
+                    stringResource(R.string.guide_unmute)
+                } else {
+                    stringResource(R.string.guide_mute)
+                },
                 onClick = onToggleMute,
             )
             MapRoundIconButton(
                 icon = Icons.Outlined.NearMe,
-                contentDescription = "Навигация",
+                contentDescription = stringResource(R.string.guide_navigation),
                 onClick = onRecenter,
             )
         }
         Card(
+            shape = RoundedCornerShape(
+                topStart = 28.dp,
+                topEnd = 28.dp,
+            ),
+            colors = CardDefaults.cardColors(containerColor = SheetWhite),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            colors = CardDefaults.cardColors(containerColor = SheetWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 88.dp),
+                    .padding(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = 10.dp,
+                        bottom = 88.dp,
+                    ),
             ) {
                 GuideProgressRow(
                     current = tourProgress.currentStep,
@@ -167,8 +188,8 @@ fun AudioGuideContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
-                            contentDescription = null,
                             tint = ForestGreenDeep,
+                            contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(6.dp))
@@ -180,7 +201,7 @@ fun AudioGuideContent(
                     }
                     Spacer(Modifier.height(18.dp))
                     Text(
-                        text = "Сейчас рассказывает AI-гид",
+                        text = stringResource(R.string.guide_speaking),
                         color = TextPrimary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -203,9 +224,17 @@ fun AudioGuideContent(
                         ),
                     )
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(playback.positionLabel, color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = playback.positionLabel,
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                        )
                         Spacer(Modifier.weight(1f))
-                        Text(playback.remainingLabel, color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = playback.remainingLabel,
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(
@@ -222,15 +251,19 @@ fun AudioGuideContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = if (showFullText) "Свернуть текст" else "Показать весь текст",
+                            text = if (showFullText) {
+                                stringResource(R.string.guide_hide_text)
+                            } else {
+                                stringResource(R.string.guide_show_text)
+                            },
                             color = ForestGreenDeep,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                         )
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null,
                             tint = ForestGreenDeep,
+                            contentDescription = null,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -238,10 +271,6 @@ fun AudioGuideContent(
             }
         }
         ExtendedFloatingActionButton(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
             containerColor = ForestGreenDeep,
             contentColor = TextOnForest,
             icon = {
@@ -252,10 +281,14 @@ fun AudioGuideContent(
             },
             text = {
                 Text(
-                    text = "Дальше к маршруту",
+                    text = stringResource(R.string.guide_continue),
                     fontWeight = FontWeight.Medium,
                 )
             },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp),
             onClick = onContinueRoute,
         )
     }
@@ -272,15 +305,18 @@ private fun GuideProgressRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
+        IconButton(
+            modifier = Modifier.size(36.dp),
+            onClick = onBack,
+        ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Назад",
+                contentDescription = stringResource(R.string.guide_back),
                 tint = IconDark,
             )
         }
         Text(
-            text = "$current из $total",
+            text = stringResource(R.string.guide_progress, current, total),
             color = TextPrimary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
@@ -288,18 +324,21 @@ private fun GuideProgressRow(
         Spacer(Modifier.width(10.dp))
         LinearProgressIndicator(
             progress = { if (total == 0) 0f else current / total.toFloat() },
+            color = ForestGreenDeep,
+            trackColor = ProgressTrack,
             modifier = Modifier
                 .weight(1f)
                 .height(6.dp)
                 .clip(RoundedCornerShape(50)),
-            color = ForestGreenDeep,
-            trackColor = ProgressTrack,
         )
         Spacer(Modifier.width(4.dp))
-        IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
+        IconButton(
+            modifier = Modifier.size(36.dp),
+            onClick = onClose,
+        ) {
             Icon(
                 imageVector = Icons.Filled.Close,
-                contentDescription = "Закрыть",
+                contentDescription = stringResource(R.string.guide_close),
                 tint = IconDark,
             )
         }
@@ -316,7 +355,10 @@ private fun GuideChip(label: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(Color(0x1A0B3A2E))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(
+                horizontal = 10.dp,
+                vertical = 6.dp,
+            ),
     )
 }
 
@@ -335,7 +377,7 @@ private fun AudioPlayerRow(
         IconButton(onClick = onPrevious) {
             Icon(
                 imageVector = Icons.Filled.SkipPrevious,
-                contentDescription = "Предыдущий",
+                contentDescription = stringResource(R.string.guide_previous),
                 tint = IconDark,
                 modifier = Modifier.size(28.dp),
             )
@@ -358,7 +400,11 @@ private fun AudioPlayerRow(
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) "Пауза" else "Слушать",
+                contentDescription = if (isPlaying) {
+                    stringResource(R.string.guide_pause)
+                } else {
+                    stringResource(R.string.guide_play)
+                },
                 tint = TextOnForest,
                 modifier = Modifier.size(28.dp),
             )
@@ -373,7 +419,7 @@ private fun AudioPlayerRow(
         IconButton(onClick = onNext) {
             Icon(
                 imageVector = Icons.Filled.SkipNext,
-                contentDescription = "Следующий",
+                contentDescription = stringResource(R.string.guide_next),
                 tint = IconDark,
                 modifier = Modifier.size(28.dp),
             )
@@ -404,37 +450,6 @@ private fun SoundWaveStub(
                 cap = StrokeCap.Round,
             )
         }
-    }
-}
-
-@Composable
-private fun KremlinMarker(modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .background(Color.White, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .background(UserBlue, CircleShape),
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "Кремлёвская",
-            color = TextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .offset(y = (-2).dp)
-                .shadow(4.dp, RoundedCornerShape(8.dp))
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        )
     }
 }
 

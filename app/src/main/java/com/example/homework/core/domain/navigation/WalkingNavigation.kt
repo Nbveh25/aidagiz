@@ -1,5 +1,7 @@
 package com.example.homework.core.domain.navigation
 
+import com.example.homework.R
+import com.example.homework.core.locale.AppStrings
 import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.map.NavigationState
 import com.example.homework.entity.map.NavigationStatus
@@ -14,7 +16,9 @@ data class NavigationEffect(
     val rebuildRoute: Boolean = false,
 )
 
-class WalkingNavigation {
+class WalkingNavigation(
+    private val strings: AppStrings,
+) {
     var state: NavigationState = NavigationState()
         private set
 
@@ -38,7 +42,7 @@ class WalkingNavigation {
             },
             placeIndex = 0,
             followUser = true,
-            instruction = "Строим пеший маршрут…",
+            instruction = strings.get(R.string.nav_building_walk),
         )
         return NavigationEffect(rebuildRoute = location != null)
     }
@@ -52,7 +56,10 @@ class WalkingNavigation {
 
     fun pause() {
         if (state.status == NavigationStatus.Navigating) {
-            state = state.copy(status = NavigationStatus.Paused, message = "Навигация на паузе")
+            state = state.copy(
+                status = NavigationStatus.Paused,
+                message = strings.get(R.string.nav_paused_message),
+            )
         }
     }
 
@@ -76,14 +83,14 @@ class WalkingNavigation {
         if (location == null) {
             state = state.copy(
                 status = NavigationStatus.WaitingLocation,
-                message = "Ждём геолокацию",
+                message = strings.get(R.string.nav_waiting_gps),
             )
             return NavigationEffect()
         }
         state = state.copy(
             status = NavigationStatus.BuildingRoute,
             message = null,
-            instruction = "Строим пеший маршрут…",
+            instruction = strings.get(R.string.nav_building_walk),
         )
         return NavigationEffect(rebuildRoute = true)
     }
@@ -93,7 +100,7 @@ class WalkingNavigation {
         if (nextIndex >= places.size) {
             state = state.copy(
                 status = NavigationStatus.Finished,
-                instruction = "Маршрут завершён",
+                instruction = strings.get(R.string.nav_finished),
                 message = null,
                 followUser = false,
             )
@@ -110,7 +117,7 @@ class WalkingNavigation {
             placeIndex = nextIndex,
             stepIndex = 0,
             route = null,
-            instruction = "Строим следующий участок…",
+            instruction = strings.get(R.string.nav_building_next),
             message = null,
         )
         return NavigationEffect(rebuildRoute = location != null)
@@ -122,7 +129,8 @@ class WalkingNavigation {
             status = NavigationStatus.Navigating,
             route = result,
             stepIndex = 0,
-            instruction = result.steps.firstOrNull()?.let(::formatManeuver) ?: "Идите к точке",
+            instruction = result.steps.firstOrNull()?.let(::formatManeuver)
+                ?: strings.get(R.string.nav_go_to_point),
             message = null,
         )
     }
@@ -131,7 +139,7 @@ class WalkingNavigation {
         state = state.copy(
             status = NavigationStatus.Error,
             message = message,
-            instruction = "Не удалось построить маршрут",
+            instruction = strings.get(R.string.nav_build_failed),
         )
     }
 
@@ -141,7 +149,7 @@ class WalkingNavigation {
             state = state.copy(
                 status = NavigationStatus.BuildingRoute,
                 message = null,
-                instruction = "Строим пеший маршрут…",
+                instruction = strings.get(R.string.nav_building_walk),
             )
             return NavigationEffect(rebuildRoute = true)
         }
@@ -149,12 +157,15 @@ class WalkingNavigation {
         if (location.accuracyMeters > 100f) {
             state = state.copy(
                 accuracyWarning = true,
-                message = "Слабый GPS (${location.accuracyMeters.toInt()} м)",
+                message = strings.get(R.string.nav_weak_gps, location.accuracyMeters.toInt()),
             )
             return NavigationEffect()
         }
         if (current == null) {
-            state = state.copy(status = NavigationStatus.Finished, instruction = "Маршрут завершён")
+            state = state.copy(
+                status = NavigationStatus.Finished,
+                instruction = strings.get(R.string.nav_finished),
+            )
             return NavigationEffect()
         }
         val toPlace = distanceMeters(location.lat, location.lon, current.lat, current.lon)
@@ -174,14 +185,14 @@ class WalkingNavigation {
         val offRoute = toRoute != null && toRoute > offRouteLimit
         consecutiveOffRoute = if (offRoute) consecutiveOffRoute + 1 else 0
         val instruction = route?.steps?.getOrNull(stepIndex)?.let(::formatManeuver)
-            ?: "Идите к ${current.name}"
+            ?: strings.get(R.string.nav_go_to_named, current.name)
         if (consecutiveArrival >= 2) {
             state = state.copy(
                 status = NavigationStatus.Arrived,
                 distanceToPlaceMeters = toPlace,
                 distanceToRouteMeters = toRoute,
                 accuracyWarning = false,
-                instruction = "Вы на месте: ${current.name}",
+                instruction = strings.get(R.string.nav_arrived_named, current.name),
                 message = null,
                 stepIndex = stepIndex,
             )
@@ -196,7 +207,7 @@ class WalkingNavigation {
                 distanceToPlaceMeters = toPlace,
                 distanceToRouteMeters = toRoute,
                 accuracyWarning = false,
-                instruction = "Вы свернули с маршрута, перестраиваем…",
+                instruction = strings.get(R.string.nav_rerouting),
                 message = null,
                 stepIndex = stepIndex,
             )
@@ -207,7 +218,7 @@ class WalkingNavigation {
             distanceToRouteMeters = toRoute,
             accuracyWarning = false,
             instruction = instruction,
-            message = if (offRoute) "Сход с маршрута" else null,
+            message = if (offRoute) strings.get(R.string.nav_off_route) else null,
             stepIndex = stepIndex,
         )
         return NavigationEffect()
@@ -215,41 +226,45 @@ class WalkingNavigation {
 
     fun remainingPlaces(): List<RoutePlace> = places.drop(state.placeIndex)
 
-    companion object {
-        private const val REBUILD_INTERVAL_MS = 20_000L
+    private fun formatManeuver(step: RouteStep): String {
+        val modifier = when (step.modifier?.lowercase()) {
+            "left" -> strings.get(R.string.nav_mod_left)
+            "right" -> strings.get(R.string.nav_mod_right)
+            "slight left" -> strings.get(R.string.nav_mod_slight_left)
+            "slight right" -> strings.get(R.string.nav_mod_slight_right)
+            "sharp left" -> strings.get(R.string.nav_mod_sharp_left)
+            "sharp right" -> strings.get(R.string.nav_mod_sharp_right)
+            "uturn", "u-turn" -> strings.get(R.string.nav_mod_uturn)
+            "straight" -> strings.get(R.string.nav_mod_straight)
+            else -> null
+        }
+        val along = step.name.takeIf { it.isNotBlank() }
+            ?.let { strings.get(R.string.nav_along, it) }
+            .orEmpty()
+        return when (step.maneuverType.lowercase()) {
+            "depart" -> strings.get(R.string.nav_depart, along)
+            "arrive" -> strings.get(R.string.nav_arrive)
+            "continue", "new name" -> strings.get(R.string.nav_continue, along)
+            "fork" -> strings.get(R.string.nav_fork, modifier ?: strings.get(R.string.nav_fork_default))
+            "turn", "end of road" -> strings.get(
+                R.string.nav_turn,
+                modifier ?: strings.get(R.string.nav_turn_default),
+                along,
+            )
+            "roundabout", "rotary", "exit roundabout" -> strings.get(
+                R.string.nav_roundabout,
+                modifier ?: strings.get(R.string.nav_roundabout_default),
+            )
+            else -> if (modifier != null) {
+                strings.get(R.string.nav_turn_simple, modifier, along)
+            } else {
+                strings.get(R.string.nav_continue_route, along)
+            }
+        }
     }
-}
 
-fun formatManeuver(step: RouteStep): String {
-    val modifier = when (step.modifier?.lowercase()) {
-        "left" -> "налево"
-        "right" -> "направо"
-        "slight left" -> "левее"
-        "slight right" -> "правее"
-        "sharp left" -> "круто налево"
-        "sharp right" -> "круто направо"
-        "uturn", "u-turn" -> "разворот"
-        "straight" -> "прямо"
-        else -> null
-    }
-    val along = step.name.takeIf { it.isNotBlank() }?.let { " по $it" }.orEmpty()
-    return when (step.maneuverType.lowercase()) {
-        "depart" -> "Начните движение$along"
-        "arrive" -> "Вы на месте"
-        "continue", "new name" -> "Продолжайте$along"
-        "fork" -> "На развилке держитесь ${modifier ?: "основного направления"}"
-        "turn", "end of road" -> "Поверните ${modifier ?: "по маршруту"}$along"
-        "roundabout", "rotary", "exit roundabout" -> "На круге ${modifier ?: "следуйте по кругу"}"
-        else -> if (modifier != null) "Поверните $modifier$along" else "Продолжайте маршрут$along"
-    }
-}
-
-fun formatNavigationDistance(meters: Double): String {
-    val value = meters.coerceAtLeast(0.0)
-    return when {
-        value >= 1000 -> "%.1f км".format(value / 1000.0)
-        value >= 50 -> "${(value / 10).toInt() * 10} м"
-        else -> "${(value / 5).toInt() * 5} м"
+    private companion object {
+        const val REBUILD_INTERVAL_MS = 20_000L
     }
 }
 

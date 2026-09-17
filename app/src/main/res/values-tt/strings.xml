@@ -1,0 +1,152 @@
+<resources>
+    <string name="app_name">Казан</string>
+
+    <string name="language_russian">РУ</string>
+    <string name="language_tatar">ТТ</string>
+    <string name="language_content_description">Кушымта теле</string>
+
+    <string name="status_here">Сез монда</string>
+    <string name="status_kazan">Казан</string>
+    <string name="status_loading_places">Якындагы урыннарны йөклибез…</string>
+    <plurals name="status_places_nearby">
+        <item quantity="one">Якында %d урын</item>
+        <item quantity="other">Якында %d урын</item>
+    </plurals>
+    <string name="status_places_empty">Урыннар йөкләнгәч күренәчәк</string>
+
+    <string name="permission_title">Геолокация рөхсәте кирәк</string>
+    <string name="permission_body">Шулай итеп карта сезнең урыныгызны күрсәтә һәм якындагы нокталарны йөкли.</string>
+    <string name="permission_allow">Рөхсәт итү</string>
+    <string name="permission_settings">Көйләүләр</string>
+    <string name="action_retry">Кабатлау</string>
+    <string name="action_recenter">Үзәк</string>
+    <string name="share_route">Маршрутны уртаклашу</string>
+
+    <string name="filter_all">Барысы</string>
+    <string name="filter_history">Тарих</string>
+    <string name="filter_culture">Мәдәният</string>
+    <string name="filter_food">Ашамлык</string>
+    <string name="filter_museums">Музейлар</string>
+    <string name="filter_nature">Табигать</string>
+    <string name="filter_viewpoints">Күренешләр</string>
+
+    <string name="category_mosque">Мәчет</string>
+    <string name="category_temple">Гыйбадәтханә</string>
+    <string name="category_museum">Музей</string>
+    <string name="category_gallery">Галерея</string>
+    <string name="category_arts_centre">Арт-үзәк</string>
+    <string name="category_artwork">Сәнгать</string>
+    <string name="category_theatre">Театр</string>
+    <string name="category_cafe">Кафе</string>
+    <string name="category_restaurant">Ресторан</string>
+    <string name="category_park">Парк</string>
+    <string name="category_garden">Бакча</string>
+    <string name="category_historic">Тарих</string>
+    <string name="category_attraction">Урын</string>
+    <string name="category_viewpoint">Күзәтү мәйданчыгы</string>
+    <string name="category_other">Урын</string>
+
+    <string name="transport_walking">Җәяү</string>
+    <string name="transport_cycling">Вело</string>
+    <string name="transport_driving">Авто</string>
+    <string name="transport_transit">Транспорт</string>
+
+    <string name="route_title">Маршрут</string>
+    <string name="route_title_count">Маршрут · %d</string>
+    <string name="route_building">Сызык төзибез…</string>
+    <string name="route_dirty">Маршрут искерде — яңадан төзегез</string>
+    <string name="route_summary">%1$s · %2$d мин</string>
+    <string name="route_ready">Нокталар өстәлде, төзергә мөмкин</string>
+    <string name="route_add_places">Картадан урыннар өстәгез</string>
+    <string name="route_hide">Яшерү</string>
+    <string name="route_show">Ачу</string>
+    <string name="route_empty">Нокталар әле юк</string>
+    <string name="route_build">Төзү</string>
+    <string name="route_optimize">Оптимальләштерү</string>
+    <string name="route_yandex">Яндекс</string>
+    <string name="route_share">Уртаклашу</string>
+    <string name="route_start_nav">Навигацияне башлау</string>
+    <string name="route_transit_hint">Җәмәгать транспорты Яндекс карталарында исәпләнә.</string>
+    <string name="route_stop_meta">%1$d мин · %2$s</string>
+    <string name="distance_meters">%d м</string>
+    <string name="distance_kilometers">%.1f км</string>
+
+    <string name="place_more">Тулырак</string>
+    <string name="place_collapse">Җыярга</string>
+    <string name="place_ai_guide">AI-гид</string>
+    <string name="place_add_to_route">Маршрутка өстәү</string>
+    <string name="place_remove_from_route">Маршруттан алу</string>
+    <string name="place_listen_guide">AI-гидны тыңлау</string>
+    <string name="place_mark_visited">Карадым, алга</string>
+    <string name="place_no_photo">Фото юк</string>
+
+    <string name="guide_back">Кире</string>
+    <string name="guide_unmute">Тавышны кабызу</string>
+    <string name="guide_mute">Тавышны сүндерү</string>
+    <string name="guide_navigation">Навигация</string>
+    <string name="guide_speaking">Хәзер AI-гид сөйли</string>
+    <string name="guide_show_text">Барлык текстны күрсәтү</string>
+    <string name="guide_hide_text">Текстны җыю</string>
+    <string name="guide_continue">Маршрут буенча алга</string>
+    <string name="guide_close">Ябу</string>
+    <string name="guide_previous">Алдагы</string>
+    <string name="guide_next">Киләсе</string>
+    <string name="guide_pause">Пауза</string>
+    <string name="guide_play">Тыңлау</string>
+    <string name="guide_progress">%1$d / %2$d</string>
+    <string name="guide_marker_kremlin">Кремль урамы</string>
+
+    <string name="nav_to_place">Ноктага: %s</string>
+    <string name="nav_title">Навигация</string>
+    <string name="nav_next">Алга</string>
+    <string name="nav_close">Ябу</string>
+    <string name="nav_resume">Дәвам итү</string>
+    <string name="nav_pause">Пауза</string>
+    <string name="nav_waiting">Көтәбез…</string>
+    <string name="nav_me">Мин</string>
+    <string name="nav_exit">Чыгу</string>
+    <string name="nav_status_waiting">Геолокацияне көтәбез</string>
+    <string name="nav_status_building">Маршрут төзибез</string>
+    <string name="nav_status_navigating">Навигация</string>
+    <string name="nav_status_paused">Пауза</string>
+    <string name="nav_status_arrived">Сез урында</string>
+    <string name="nav_status_finished">Маршрут тәмам</string>
+    <string name="nav_status_error">Маршрут хатасы</string>
+    <string name="nav_building_walk">Җәяү маршрутын төзибез…</string>
+    <string name="nav_paused_message">Навигация паузада</string>
+    <string name="nav_waiting_gps">Геолокацияне көтәбез</string>
+    <string name="nav_finished">Маршрут тәмам</string>
+    <string name="nav_building_next">Киләсе өлешне төзибез…</string>
+    <string name="nav_go_to_point">Ноктага барыгыз</string>
+    <string name="nav_build_failed">Маршрутны төзеп булмады</string>
+    <string name="nav_weak_gps">GPS начар (%d м)</string>
+    <string name="nav_go_to_named">%s ягына барыгыз</string>
+    <string name="nav_arrived_named">Сез урында: %s</string>
+    <string name="nav_rerouting">Маршруттан читләштегез, яңадан төзибез…</string>
+    <string name="nav_off_route">Маршруттан читләшү</string>
+    <string name="nav_mod_left">сулга</string>
+    <string name="nav_mod_right">уңга</string>
+    <string name="nav_mod_slight_left">сулгарак</string>
+    <string name="nav_mod_slight_right">уңгарак</string>
+    <string name="nav_mod_sharp_left">кискен сулга</string>
+    <string name="nav_mod_sharp_right">кискен уңга</string>
+    <string name="nav_mod_uturn">кире борылу</string>
+    <string name="nav_mod_straight">туры</string>
+    <string name="nav_along"> %s буенча</string>
+    <string name="nav_depart">Хәрәкәтне башлагыз%s</string>
+    <string name="nav_arrive">Сез урында</string>
+    <string name="nav_continue">Дәвам итегез%s</string>
+    <string name="nav_fork">Аерылышта %s тотыгыз</string>
+    <string name="nav_fork_default">төп юнәлешне</string>
+    <string name="nav_turn">%1$s борылыгыз%2$s</string>
+    <string name="nav_turn_default">маршрут буенча</string>
+    <string name="nav_roundabout">Әйләнмәдә %s</string>
+    <string name="nav_roundabout_default">әйләнмә буенча барыгыз</string>
+    <string name="nav_turn_simple">%1$s борылыгыз%2$s</string>
+    <string name="nav_continue_route">Маршрутны дәвам итегез%s</string>
+
+    <string name="error_optimize_route">Маршрутны оптимальләштереп булмады</string>
+    <string name="error_build_route">Маршрутны төзеп булмады</string>
+    <string name="error_load_places">Урыннарны йөкләп булмады</string>
+    <string name="error_http">Хата %d</string>
+</resources>

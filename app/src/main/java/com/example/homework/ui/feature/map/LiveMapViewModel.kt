@@ -2,7 +2,9 @@ package com.example.homework.ui.feature.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.homework.R
 import com.example.homework.core.domain.navigation.WalkingNavigation
+import com.example.homework.core.locale.AppStrings
 import com.example.homework.core.domain.usecase.ControlAiGuideUseCase
 import com.example.homework.core.domain.usecase.EnsureAnonymousUserUseCase
 import com.example.homework.core.domain.usecase.GetAiGuideUseCase
@@ -51,13 +53,14 @@ class LiveMapViewModel(
     private val ensureAnonymousUser: EnsureAnonymousUserUseCase,
     private val getOsrmRoute: GetOsrmRouteUseCase,
     private val optimizeRoutePlaces: OptimizeRoutePlacesUseCase,
+    private val strings: AppStrings,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         LiveMapUiState(permissionGranted = getUserLocation.hasPermission()),
     )
     val state: StateFlow<LiveMapUiState> = _state.asStateFlow()
 
-    private val navigator = WalkingNavigation()
+    private val navigator = WalkingNavigation(strings)
     private var locationJob: Job? = null
     private var placesJob: Job? = null
     private var routeJob: Job? = null
@@ -178,7 +181,7 @@ class LiveMapViewModel(
                 _state.update {
                     it.copy(
                         isBuildingRoute = false,
-                        errorMessage = e.message ?: "Не удалось оптимизировать маршрут",
+                        errorMessage = e.message ?: strings.get(R.string.error_optimize_route),
                     )
                 }
             }
@@ -299,7 +302,7 @@ class LiveMapViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val message = e.message ?: "Не удалось построить маршрут"
+                val message = e.message ?: strings.get(R.string.error_build_route)
                 _state.update { it.copy(isBuildingRoute = false, errorMessage = message) }
                 if (fromNavigation) {
                     navigator.onRouteFailed(message)
@@ -442,7 +445,7 @@ class LiveMapViewModel(
                 _state.update {
                     it.copy(
                         isLoadingPlaces = false,
-                        errorMessage = e.message ?: "Не удалось загрузить места",
+                        errorMessage = e.message ?: strings.get(R.string.error_load_places),
                     )
                 }
             }

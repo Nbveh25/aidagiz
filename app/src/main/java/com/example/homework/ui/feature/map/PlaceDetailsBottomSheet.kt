@@ -39,18 +39,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.homework.R
 import com.example.homework.entity.guide.AiGuideNarration
 import com.example.homework.entity.guide.AiGuidePlayback
 import com.example.homework.entity.map.OsmPlace
-import com.example.homework.entity.map.formatDistance
 import com.example.homework.entity.place.PlaceDetails
 import com.example.homework.entity.tour.TourProgress
+import com.example.homework.ui.locale.labelRes
+import com.example.homework.ui.locale.localizedDistance
 import com.example.homework.ui.uikit.theme.ForestGreenDeep
 import com.example.homework.ui.uikit.theme.SheetWhite
 import com.example.homework.ui.uikit.theme.TextOnForest
@@ -103,8 +106,8 @@ fun PlaceDetailsBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val meta = buildList {
-        add(place.category.label)
-        if (distanceMeters != null) add(formatDistance(distanceMeters))
+        add(stringResource(place.category.labelRes))
+        if (distanceMeters != null) add(localizedDistance(distanceMeters))
         (details?.openingHours ?: place.openingHours)?.let { add(it) }
     }.joinToString(" · ")
 
@@ -246,7 +249,7 @@ private fun CollapsedPlaceContent(
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "Подробнее",
+            contentDescription = stringResource(R.string.place_more),
             tint = TextSecondary,
             modifier = Modifier
                 .size(28.dp)
@@ -304,7 +307,7 @@ private fun ExpandedPlaceContent(
             }
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
-                contentDescription = "Свернуть",
+                contentDescription = stringResource(R.string.place_collapse),
                 tint = TextSecondary,
                 modifier = Modifier
                     .size(28.dp)
@@ -313,7 +316,7 @@ private fun ExpandedPlaceContent(
         }
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "AI-гид",
+            text = stringResource(R.string.place_ai_guide),
             color = TextPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
@@ -331,17 +334,21 @@ private fun ExpandedPlaceContent(
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             PlaceSheetButton(
-                label = if (inRoute) "Убрать из маршрута" else "Добавить в маршрут",
+                label = if (inRoute) {
+                    stringResource(R.string.place_remove_from_route)
+                } else {
+                    stringResource(R.string.place_add_to_route)
+                },
                 filled = !inRoute,
                 onClick = onToggleRoute,
             )
             PlaceSheetButton(
-                label = "Слушать AI-гида",
+                label = stringResource(R.string.place_listen_guide),
                 filled = true,
                 onClick = onListen,
             )
             PlaceSheetButton(
-                label = "Я посмотрел, дальше",
+                label = stringResource(R.string.place_mark_visited),
                 filled = false,
                 onClick = onMarkVisited,
             )
@@ -382,7 +389,7 @@ private fun PlacePhoto(
     ) {
         if (imageUrl.isNullOrBlank()) {
             Text(
-                text = "Нет фото",
+                text = stringResource(R.string.place_no_photo),
                 color = TextSecondary,
                 fontSize = 12.sp,
             )

@@ -22,13 +22,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.homework.R
 import com.example.homework.entity.map.RoutePlace
 import com.example.homework.entity.map.RouteResult
 import com.example.homework.entity.map.TransportMode
-import com.example.homework.entity.map.formatDistance
+import com.example.homework.ui.locale.labelRes
+import com.example.homework.ui.locale.localizedDistance
 import com.example.homework.ui.uikit.theme.ForestGreen
 import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
@@ -70,28 +73,40 @@ fun RouteBuilderPanel(
             Column(Modifier.weight(1f)) {
                 Text(
                     text = if (routePlaces.isEmpty()) {
-                        "Маршрут"
+                        stringResource(R.string.route_title)
                     } else {
-                        "Маршрут · ${routePlaces.size}"
+                        stringResource(
+                            R.string.route_title_count,
+                            routePlaces.size,
+                        )
                     },
                     color = TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 val subtitle = when {
-                    isBuilding -> "Строим линию…"
-                    routeDirty && route != null -> "Маршрут устарел — постройте снова"
-                    route != null -> "${formatDistance(route.distanceMeters.toInt())} · ${(route.durationSeconds / 60).toInt()} мин"
-                    routePlaces.size >= 2 -> "Добавлены точки, можно построить"
-                    else -> "Добавьте места с карты"
+                    isBuilding -> stringResource(R.string.route_building)
+                    routeDirty && route != null -> stringResource(R.string.route_dirty)
+                    route != null -> stringResource(
+                        R.string.route_summary,
+                        localizedDistance(route.distanceMeters.toInt()),
+                        (route.durationSeconds / 60).toInt(),
+                    )
+
+                    routePlaces.size >= 2 -> stringResource(R.string.route_ready)
+                    else -> stringResource(R.string.route_add_places)
                 }
-                Text(text = subtitle, color = TextSecondary, fontSize = 12.sp)
+                Text(
+                    text = subtitle,
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                )
             }
             Text(
                 text = if (expanded) {
-                    "Скрыть"
+                    stringResource(R.string.route_hide)
                 } else {
-                    "Открыть"
+                    stringResource(R.string.route_show)
                 },
                 color = ForestGreen,
                 fontSize = 13.sp,
@@ -107,7 +122,7 @@ fun RouteBuilderPanel(
             TransportMode.entries.forEach { mode ->
                 val active = mode == transportMode
                 Text(
-                    text = mode.label,
+                    text = mode.let { stringResource(it.labelRes) },
                     color = if (active) TextOnForest else TextPrimary,
                     fontSize = 13.sp,
                     modifier = Modifier
@@ -131,7 +146,7 @@ fun RouteBuilderPanel(
         ) {
             if (routePlaces.isEmpty()) {
                 Text(
-                    text = "Точек пока нет",
+                    text = stringResource(R.string.route_empty),
                     color = TextSecondary,
                     fontSize = 13.sp,
                 )
@@ -149,12 +164,12 @@ fun RouteBuilderPanel(
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PanelButton(
-                label = "Построить",
+                label = stringResource(R.string.route_build),
                 onClick = onBuild,
                 enabled = routePlaces.isNotEmpty() && transportMode.isRoutable
             )
             PanelButton(
-                label = "Оптимизировать",
+                label = stringResource(R.string.route_optimize),
                 onClick = onOptimize,
                 filled = false,
                 enabled = routePlaces.size >= 2 && transportMode.isRoutable,
@@ -163,13 +178,13 @@ fun RouteBuilderPanel(
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PanelButton(
-                label = "Яндекс",
+                label = stringResource(R.string.route_yandex),
                 onClick = onOpenYandex,
                 filled = false,
                 enabled = routePlaces.isNotEmpty(),
             )
             PanelButton(
-                label = "Поделиться",
+                label = stringResource(R.string.route_share),
                 onClick = onShare,
                 filled = false,
                 enabled = routePlaces.isNotEmpty(),
@@ -178,7 +193,7 @@ fun RouteBuilderPanel(
         if (transportMode == TransportMode.Walking) {
             Spacer(Modifier.height(8.dp))
             PanelButton(
-                label = "Начать навигацию",
+                label = stringResource(R.string.route_start_nav),
                 onClick = onStartNavigation,
                 enabled = routePlaces.isNotEmpty(),
             )
@@ -186,7 +201,7 @@ fun RouteBuilderPanel(
         if (transportMode == TransportMode.Transit) {
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Общественный транспорт считается в Яндекс Картах.",
+                text = stringResource(R.string.route_transit_hint),
                 color = TextSecondary,
                 fontSize = 12.sp,
             )
@@ -220,7 +235,11 @@ private fun RoutePlaceRow(
                 maxLines = 1
             )
             Text(
-                text = "${item.visitDurationMinutes} мин · ${item.category.label}",
+                text = stringResource(
+                    R.string.route_stop_meta,
+                    item.visitDurationMinutes,
+                    stringResource(item.category.labelRes),
+                ),
                 color = TextSecondary,
                 fontSize = 11.sp
             )

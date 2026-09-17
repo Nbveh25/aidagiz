@@ -25,6 +25,8 @@ import com.example.homework.core.data.source.tour.TourSource
 import com.example.homework.core.data.source.user.AnonymousUserSource
 import com.example.homework.core.data.source.user.UserIdStore
 import com.example.homework.core.data.source.userLocation.UserLocationSource
+import com.example.homework.core.locale.AppStrings
+import com.example.homework.core.locale.LocaleStore
 import com.example.homework.core.domain.repository.AiGuideRepository
 import com.example.homework.core.domain.repository.AnonymousUserRepository
 import com.example.homework.core.domain.repository.LocationRatingRepository
@@ -98,6 +100,8 @@ val dataModule = module {
         )
     }
     single { UserIdStore(androidContext()) }
+    single { LocaleStore(androidContext()) }
+    single { AppStrings(androidContext()) }
     single { UserLocationSource(androidContext()) }
     single { AiGuideSource(androidContext()) }
     singleOf(::AnonymousUserSource)

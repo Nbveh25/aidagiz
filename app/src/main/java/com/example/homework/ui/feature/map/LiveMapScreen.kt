@@ -1,6 +1,7 @@
 package com.example.homework.ui.feature.map
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -25,17 +26,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.homework.R
+import com.example.homework.core.locale.AppLanguage
+import com.example.homework.core.locale.LocaleStore
 import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.map.KazanCenter
 import com.example.homework.entity.map.OsmPlace
@@ -45,6 +51,8 @@ import com.example.homework.entity.map.RoutePlace
 import com.example.homework.entity.map.RouteResult
 import com.example.homework.entity.map.TransportMode
 import com.example.homework.ui.feature.map.state.LiveMapUiState
+import com.example.homework.ui.locale.localizedPlacesCount
+import com.example.homework.ui.uikit.component.LanguageToggle
 import com.example.homework.ui.uikit.component.RecenterChip
 import com.example.homework.ui.uikit.component.StatusChip
 import com.example.homework.ui.uikit.theme.ForestGreen
@@ -61,6 +69,8 @@ fun LiveMapScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val localeStore = remember { LocaleStore(context) }
+    val language = remember { localeStore.get() }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -121,7 +131,7 @@ fun LiveMapScreen(
                         type = "text/plain"
                         putExtra(Intent.EXTRA_TEXT, state.yandexUrl)
                     },
-                    "Поделиться маршрутом",
+                    context.getString(R.string.share_route),
                 ),
             )
         },
@@ -136,6 +146,13 @@ fun LiveMapScreen(
         onToggleMute = viewModel::toggleGuideSound,
         onPreviousStop = viewModel::goToPreviousStop,
         onNextStop = viewModel::goToNextStop,
+        language = language,
+        onLanguageSelect = { selected ->
+            if (selected != language) {
+                localeStore.set(selected)
+                (context as? Activity)?.recreate()
+            }
+        },
         modifier = modifier,
     )
 }
@@ -174,6 +191,8 @@ fun LiveMapContent(
     onToggleMute: () -> Unit = {},
     onPreviousStop: () -> Unit = {},
     onNextStop: () -> Unit = {},
+    language: AppLanguage = AppLanguage.Russian,
+    onLanguageSelect: (AppLanguage) -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         OsmMap(
@@ -199,15 +218,30 @@ fun LiveMapContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            StatusChip(
-                title = if (state.user != null) "Вы здесь" else "Казань",
-                subtitle = when {
-                    state.isLoadingPlaces -> "Загружаем места рядом…"
-                    state.filteredPlaces.isNotEmpty() -> "${state.filteredPlaces.size} мест рядом"
-                    else -> "Места появятся после ответа Overpass"
-                },
-                loading = state.isLoadingPlaces,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatusChip(
+                    title = if (state.user != null) {
+                        stringResource(R.string.status_here)
+                    } else {
+                        stringResource(R.string.status_kazan)
+                    },
+                    subtitle = when {
+                        state.isLoadingPlaces -> stringResource(R.string.status_loading_places)
+                        state.filteredPlaces.isNotEmpty() -> localizedPlacesCount(state.filteredPlaces.size)
+                        else -> stringResource(R.string.status_places_empty)
+                    },
+                    loading = state.isLoadingPlaces,
+                    modifier = Modifier.weight(1f),
+                )
+                LanguageToggle(
+                    selected = language,
+                    onSelect = onLanguageSelect,
+                )
+            }
             if (!state.navigation.isActive) {
                 PlaceFilterBar(
                     places = state.places,
@@ -310,14 +344,14 @@ private fun PermissionBanner(
             .padding(14.dp),
     ) {
         Text(
-            text = "Нужен доступ к геолокации",
+            text = stringResource(R.string.permission_title),
             color = TextPrimary,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Так карта покажет, где вы сейчас, и подгрузит места вокруг.",
+            text = stringResource(R.string.permission_body),
             color = TextSecondary,
             fontSize = 13.sp,
             lineHeight = 18.sp,
@@ -325,12 +359,12 @@ private fun PermissionBanner(
         Spacer(Modifier.height(10.dp))
         Row {
             BannerButton(
-                label = "Разрешить",
+                label = stringResource(R.string.permission_allow),
                 onClick = onAllow,
             )
             Spacer(Modifier.width(8.dp))
             BannerButton(
-                label = "Настройки",
+                label = stringResource(R.string.permission_settings),
                 onClick = onOpenSettings,
                 filled = false,
             )
@@ -361,7 +395,7 @@ private fun ErrorBanner(
         )
         Spacer(Modifier.width(8.dp))
         BannerButton(
-            label = "Повторить",
+            label = stringResource(R.string.action_retry),
             onClick = onRetry,
         )
     }

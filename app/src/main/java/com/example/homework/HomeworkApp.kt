@@ -1,9 +1,11 @@
 package com.example.homework
 
 import android.app.Application
+import android.content.Context
 import androidx.core.content.edit
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.example.homework.core.locale.LocaleHelper
 import com.example.homework.di.appModules
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
@@ -14,6 +16,10 @@ import org.osmdroid.config.Configuration
 import java.io.File
 
 class HomeworkApp : Application(), ImageLoaderFactory {
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.wrap(base))
+    }
 
     override fun onCreate() {
         super.onCreate()
