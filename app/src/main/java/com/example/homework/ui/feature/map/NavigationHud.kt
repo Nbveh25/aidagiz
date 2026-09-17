@@ -68,7 +68,11 @@ fun NavigationHud(
             )
         }
         navigation.message?.let { message ->
-            Text(text = message, color = TextSecondary, fontSize = 13.sp)
+            Text(
+                text = message,
+                color = TextSecondary,
+                fontSize = 13.sp,
+            )
         }
         Spacer(Modifier.height(12.dp))
         Row(
@@ -77,22 +81,46 @@ fun NavigationHud(
         ) {
             when (navigation.status) {
                 NavigationStatus.Error, NavigationStatus.WaitingLocation ->
-                    HudButton("Повторить", onRetry)
+                    HudButton(
+                        label = "Повторить",
+                        onClick = onRetry,
+                    )
+
                 NavigationStatus.Arrived ->
-                    HudButton("Далее", onNext)
+                    HudButton(
+                        label = "Далее",
+                        onClick = onNext,
+                    )
+
                 NavigationStatus.Finished ->
-                    HudButton("Закрыть", onExit)
+                    HudButton(
+                        label = "Закрыть",
+                        onClick = onExit,
+                    )
+
                 NavigationStatus.Paused ->
-                    HudButton("Продолжить", onPauseResume)
+                    HudButton(
+                        label = "Продолжить",
+                        onClick = onPauseResume,
+                    )
+
                 else ->
                     HudButton(
-                        if (navigation.status == NavigationStatus.Navigating) "Пауза" else "Ждём…",
-                        onPauseResume,
+                        label = if (navigation.status == NavigationStatus.Navigating) "Пауза" else "Ждём…",
+                        onClick = onPauseResume,
                         enabled = navigation.status == NavigationStatus.Navigating,
                     )
             }
-            HudButton("Я", onRecenter, filled = false)
-            HudButton("Выйти", onExit, filled = false)
+            HudButton(
+                label = "Я",
+                onClick = onRecenter,
+                filled = false,
+            )
+            HudButton(
+                label = "Выйти",
+                onClick = onExit,
+                filled = false,
+            )
         }
     }
 }
@@ -111,13 +139,19 @@ private fun statusLabel(status: NavigationStatus): String = when (status) {
 @Composable
 private fun HudButton(
     label: String,
-    onClick: () -> Unit,
     filled: Boolean = true,
     enabled: Boolean = true,
+    onClick: () -> Unit,
 ) {
     Text(
         text = label,
-        color = if (!enabled) TextSecondary else if (filled) TextOnForest else ForestGreen,
+        color = if (!enabled) {
+            TextSecondary
+        } else if (filled) {
+            TextOnForest
+        } else {
+            ForestGreen
+        },
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
         modifier = Modifier

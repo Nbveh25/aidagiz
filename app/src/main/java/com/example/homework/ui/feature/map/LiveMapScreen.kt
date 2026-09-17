@@ -32,15 +32,26 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.homework.entity.map.GeoLocation
+import com.example.homework.entity.map.KazanCenter
+import com.example.homework.entity.map.OsmPlace
+import com.example.homework.entity.map.PlaceCategory
+import com.example.homework.entity.map.PlaceFilter
+import com.example.homework.entity.map.RoutePlace
+import com.example.homework.entity.map.RouteResult
+import com.example.homework.entity.map.TransportMode
+import com.example.homework.ui.feature.map.state.LiveMapUiState
+import com.example.homework.ui.uikit.component.RecenterChip
+import com.example.homework.ui.uikit.component.StatusChip
 import com.example.homework.ui.uikit.theme.ForestGreen
+import com.example.homework.ui.uikit.theme.HomeworkTheme
 import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
 import com.example.homework.ui.uikit.theme.TextSecondary
-import com.example.homework.ui.uikit.component.RecenterChip
-import com.example.homework.ui.uikit.component.StatusChip
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -67,22 +78,103 @@ fun LiveMapScreen(
         }
     }
 
-    fun openYandex() {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.yandexUrl)))
-    }
+    LiveMapContent(
+        state = state,
+        onPlaceSelected = viewModel::selectPlace,
+        onUserMapInteraction = viewModel::onUserMapInteraction,
+        onSetPlaceFilter = viewModel::setPlaceFilter,
+        onAllowPermission = {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        },
+        onOpenSettings = {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", context.packageName, null),
+                ),
+            )
+        },
+        onRetryPlaces = viewModel::retryPlaces,
+        onRecenter = viewModel::recenter,
+        onPauseResumeNavigation = viewModel::pauseOrResumeNavigation,
+        onRetryNavigation = viewModel::retryNavigation,
+        onNextNavigationPlace = viewModel::nextNavigationPlace,
+        onStopNavigation = viewModel::stopNavigation,
+        onToggleRoutePanel = viewModel::toggleRoutePanel,
+        onRemoveFromRoute = viewModel::removeFromRoute,
+        onDurationDelta = viewModel::changeVisitDuration,
+        onTransportMode = viewModel::setTransportMode,
+        onBuildRoute = viewModel::buildRoute,
+        onOptimizeRoute = viewModel::optimizeAndBuild,
+        onOpenYandex = {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.yandexUrl)))
+        },
+        onShareRoute = {
+            context.startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, state.yandexUrl)
+                    },
+                    "Поделиться маршрутом",
+                ),
+            )
+        },
+        onStartNavigation = viewModel::startNavigation,
+        onDismissPlace = { viewModel.selectPlace(null) },
+        onToggleSelectedInRoute = viewModel::toggleSelectedInRoute,
+        onOpenGuide = viewModel::openGuide,
+        onCloseGuide = viewModel::closeGuide,
+        onMarkVisited = viewModel::markPlaceVisited,
+        onTogglePlayback = viewModel::toggleGuidePlayback,
+        onSeekGuide = viewModel::seekGuide,
+        onToggleMute = viewModel::toggleGuideSound,
+        onPreviousStop = viewModel::goToPreviousStop,
+        onNextStop = viewModel::goToNextStop,
+        modifier = modifier,
+    )
+}
 
-    fun shareRoute() {
-        context.startActivity(
-            Intent.createChooser(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, state.yandexUrl)
-                },
-                "Поделиться маршрутом",
-            ),
-        )
-    }
-
+@Composable
+fun LiveMapContent(
+    state: LiveMapUiState,
+    modifier: Modifier = Modifier,
+    onPlaceSelected: (String?) -> Unit = {},
+    onUserMapInteraction: () -> Unit = {},
+    onSetPlaceFilter: (PlaceFilter) -> Unit = {},
+    onAllowPermission: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onRetryPlaces: () -> Unit = {},
+    onRecenter: () -> Unit = {},
+    onPauseResumeNavigation: () -> Unit = {},
+    onRetryNavigation: () -> Unit = {},
+    onNextNavigationPlace: () -> Unit = {},
+    onStopNavigation: () -> Unit = {},
+    onToggleRoutePanel: () -> Unit = {},
+    onRemoveFromRoute: (String) -> Unit = {},
+    onDurationDelta: (String, Int) -> Unit = { _, _ -> },
+    onTransportMode: (TransportMode) -> Unit = {},
+    onBuildRoute: () -> Unit = {},
+    onOptimizeRoute: () -> Unit = {},
+    onOpenYandex: () -> Unit = {},
+    onShareRoute: () -> Unit = {},
+    onStartNavigation: () -> Unit = {},
+    onDismissPlace: () -> Unit = {},
+    onToggleSelectedInRoute: () -> Unit = {},
+    onOpenGuide: () -> Unit = {},
+    onCloseGuide: () -> Unit = {},
+    onMarkVisited: () -> Unit = {},
+    onTogglePlayback: () -> Unit = {},
+    onSeekGuide: (Float) -> Unit = {},
+    onToggleMute: () -> Unit = {},
+    onPreviousStop: () -> Unit = {},
+    onNextStop: () -> Unit = {},
+) {
     Box(modifier = modifier.fillMaxSize()) {
         OsmMap(
             center = state.mapCenter,
@@ -95,8 +187,8 @@ fun LiveMapScreen(
             followUser = state.followUser,
             recenterToken = state.recenterToken,
             fitRouteToken = state.fitRouteToken,
-            onPlaceSelected = viewModel::selectPlace,
-            onUserMapInteraction = viewModel::onUserMapInteraction,
+            onPlaceSelected = onPlaceSelected,
+            onUserMapInteraction = onUserMapInteraction,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -120,31 +212,17 @@ fun LiveMapScreen(
                 PlaceFilterBar(
                     places = state.places,
                     selected = state.placeFilter,
-                    onSelect = viewModel::setPlaceFilter,
+                    onSelect = onSetPlaceFilter,
                 )
             }
             if (!state.permissionGranted) {
                 PermissionBanner(
-                    onAllow = {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onOpenSettings = {
-                        context.startActivity(
-                            Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                Uri.fromParts("package", context.packageName, null),
-                            ),
-                        )
-                    },
+                    onAllow = onAllowPermission,
+                    onOpenSettings = onOpenSettings,
                 )
             }
             state.errorMessage?.let { message ->
-                ErrorBanner(message = message, onRetry = viewModel::retryPlaces)
+                ErrorBanner(message = message, onRetry = onRetryPlaces)
             }
         }
 
@@ -156,16 +234,16 @@ fun LiveMapScreen(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RecenterChip(onClick = viewModel::recenter)
+            RecenterChip(onClick = onRecenter)
             if (state.navigation.isActive) {
                 NavigationHud(
                     navigation = state.navigation,
                     currentPlaceName = state.routePlaces.getOrNull(state.navigation.placeIndex)?.name,
-                    onPauseResume = viewModel::pauseOrResumeNavigation,
-                    onRecenter = viewModel::recenter,
-                    onRetry = viewModel::retryNavigation,
-                    onNext = viewModel::nextNavigationPlace,
-                    onExit = viewModel::stopNavigation,
+                    onPauseResume = onPauseResumeNavigation,
+                    onRecenter = onRecenter,
+                    onRetry = onRetryNavigation,
+                    onNext = onNextNavigationPlace,
+                    onExit = onStopNavigation,
                 )
             } else if (state.selectedPlace == null) {
                 RouteBuilderPanel(
@@ -175,15 +253,15 @@ fun LiveMapScreen(
                     routeDirty = state.routeDirty,
                     isBuilding = state.isBuildingRoute,
                     expanded = state.routePanelExpanded,
-                    onToggleExpanded = viewModel::toggleRoutePanel,
-                    onRemove = viewModel::removeFromRoute,
-                    onDurationDelta = viewModel::changeVisitDuration,
-                    onTransportMode = viewModel::setTransportMode,
-                    onBuild = viewModel::buildRoute,
-                    onOptimize = viewModel::optimizeAndBuild,
-                    onOpenYandex = { openYandex() },
-                    onShare = { shareRoute() },
-                    onStartNavigation = viewModel::startNavigation,
+                    onToggleExpanded = onToggleRoutePanel,
+                    onRemove = onRemoveFromRoute,
+                    onDurationDelta = onDurationDelta,
+                    onTransportMode = onTransportMode,
+                    onBuild = onBuildRoute,
+                    onOptimize = onOptimizeRoute,
+                    onOpenYandex = onOpenYandex,
+                    onShare = onShareRoute,
+                    onStartNavigation = onStartNavigation,
                 )
             }
         }
@@ -199,24 +277,23 @@ fun LiveMapScreen(
                     distanceMeters = state.user?.let { place.distanceMetersTo(it) },
                     isGuideOpen = state.isGuideOpen,
                     inRoute = state.selectedInRoute,
-                    onDismiss = { viewModel.selectPlace(null) },
-                    onToggleRoute = viewModel::toggleSelectedInRoute,
-                    onOpenGuide = viewModel::openGuide,
-                    onCloseGuide = viewModel::closeGuide,
-                    onMarkVisited = viewModel::markPlaceVisited,
-                    onTogglePlayback = viewModel::toggleGuidePlayback,
-                    onSeek = viewModel::seekGuide,
-                    onToggleMute = viewModel::toggleGuideSound,
-                    onPreviousStop = viewModel::goToPreviousStop,
-                    onNextStop = viewModel::goToNextStop,
-                    onContinueRoute = viewModel::goToNextStop,
-                    onRecenter = viewModel::recenter,
+                    onDismiss = onDismissPlace,
+                    onToggleRoute = onToggleSelectedInRoute,
+                    onOpenGuide = onOpenGuide,
+                    onCloseGuide = onCloseGuide,
+                    onMarkVisited = onMarkVisited,
+                    onTogglePlayback = onTogglePlayback,
+                    onSeek = onSeekGuide,
+                    onToggleMute = onToggleMute,
+                    onPreviousStop = onPreviousStop,
+                    onNextStop = onNextStop,
+                    onContinueRoute = onNextStop,
+                    onRecenter = onRecenter,
                 )
             }
         }
     }
 }
-
 
 @Composable
 private fun PermissionBanner(
@@ -247,9 +324,16 @@ private fun PermissionBanner(
         )
         Spacer(Modifier.height(10.dp))
         Row {
-            BannerButton("Разрешить", onAllow)
+            BannerButton(
+                label = "Разрешить",
+                onClick = onAllow,
+            )
             Spacer(Modifier.width(8.dp))
-            BannerButton("Настройки", onOpenSettings, filled = false)
+            BannerButton(
+                label = "Настройки",
+                onClick = onOpenSettings,
+                filled = false,
+            )
         }
     }
 }
@@ -276,7 +360,10 @@ private fun ErrorBanner(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(8.dp))
-        BannerButton("Повторить", onRetry)
+        BannerButton(
+            label = "Повторить",
+            onClick = onRetry,
+        )
     }
 }
 
@@ -298,3 +385,99 @@ private fun BannerButton(
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
+
+// region Preview
+
+@Preview(
+    name = "Карта",
+    showBackground = true,
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+private fun LiveMapScreenPreview() {
+    HomeworkTheme {
+        LiveMapContent(state = previewMapState())
+    }
+}
+
+@Preview(
+    name = "Без геолокации",
+    showBackground = true,
+    showSystemUi = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+private fun LiveMapScreenPermissionPreview() {
+    HomeworkTheme {
+        LiveMapContent(
+            state = previewMapState().copy(
+                user = null,
+                permissionGranted = false,
+                routePanelExpanded = false,
+                routePlaces = emptyList(),
+                route = null,
+            ),
+        )
+    }
+}
+
+private fun previewMapState(): LiveMapUiState {
+    val kremlin = OsmPlace(
+        id = "kremlin",
+        name = "Казанский Кремль",
+        lat = 55.7986,
+        lon = 49.1064,
+        category = PlaceCategory.Historic,
+        description = "Исторический комплекс.",
+    )
+    val mosque = OsmPlace(
+        id = "kul-sharif",
+        name = "Кул-Шариф",
+        lat = 55.7984,
+        lon = 49.1051,
+        category = PlaceCategory.Mosque,
+        description = "Соборная мечеть.",
+    )
+    val cafe = OsmPlace(
+        id = "bauman",
+        name = "Чәй йорты",
+        lat = 55.7895,
+        lon = 49.1167,
+        category = PlaceCategory.Cafe,
+        description = "Татарская кухня на Баумана.",
+    )
+    val park = OsmPlace(
+        id = "kaban",
+        name = "оз. Кабан",
+        lat = 55.7778,
+        lon = 49.1220,
+        category = PlaceCategory.Park,
+        description = "Набережная.",
+    )
+    val user = GeoLocation(lat = KazanCenter.lat, lon = KazanCenter.lon, accuracyMeters = 18f)
+    return LiveMapUiState(
+        user = user,
+        places = listOf(kremlin, mosque, cafe, park),
+        permissionGranted = true,
+        routePlaces = listOf(
+            RoutePlace(kremlin, order = 1, visitDurationMinutes = 25),
+            RoutePlace(mosque, order = 2, visitDurationMinutes = 15),
+        ),
+        transportMode = TransportMode.Walking,
+        route = RouteResult(
+            geometry = listOf(
+                user,
+                GeoLocation(kremlin.lat, kremlin.lon),
+                GeoLocation(mosque.lat, mosque.lon),
+            ),
+            distanceMeters = 1_240.0,
+            durationSeconds = 16 * 60.0,
+            steps = emptyList(),
+            mode = TransportMode.Walking,
+        ),
+        routePanelExpanded = true,
+    )
+}
+
+// endregion

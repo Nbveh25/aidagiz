@@ -23,6 +23,7 @@ import com.example.homework.entity.map.OsmPlace
 import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.TransportMode
 import com.example.homework.entity.map.addRoutePlace
+import com.example.homework.entity.map.distanceMeters
 import com.example.homework.entity.map.removeRoutePlace
 import com.example.homework.entity.map.updateRoutePlaceVisitDuration
 import com.example.homework.ui.feature.map.state.LiveMapUiState
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class LiveMapViewModel(
     private val getNearbyPlaces: GetNearbyPlacesUseCase,
@@ -75,7 +77,7 @@ class LiveMapViewModel(
         }
         viewModelScope.launch {
             while (true) {
-                delay(PLAYBACK_TICK_MS)
+                delay(PLAYBACK_TICK_MS.milliseconds)
                 if (_state.value.guidePlayback.isPlaying) {
                     controlAiGuide.tick()
                 }
@@ -83,7 +85,7 @@ class LiveMapViewModel(
         }
         viewModelScope.launch {
             runCatching { ensureAnonymousUser() }
-            refreshPlaces(KazanCenter)
+            refreshPlaces()
         }
         if (_state.value.permissionGranted) {
             startLocationUpdates()
@@ -245,8 +247,7 @@ class LiveMapViewModel(
     fun markPlaceVisited() = moveToStop(markPlaceVisitedUseCase(), keepGuide = false)
 
     fun retryPlaces() {
-        val location = if (didReloadAroundUser) _state.value.mapCenter else KazanCenter
-        refreshPlaces(location, force = true)
+        refreshPlaces(around = _state.value.user, force = true)
     }
 
     private fun addToRoute(place: OsmPlace) {
@@ -395,7 +396,7 @@ class LiveMapViewModel(
                 }
                 if (!didReloadAroundUser) {
                     didReloadAroundUser = true
-                    refreshPlaces(location)
+                    refreshPlaces(around = location, force = true)
                 }
                 if (navigator.state.isActive) {
                     val effect = navigator.onLocation(location, System.currentTimeMillis())
@@ -406,14 +407,14 @@ class LiveMapViewModel(
         }
     }
 
-    private fun refreshPlaces(location: GeoLocation, force: Boolean = false) {
+    private fun refreshPlaces(around: GeoLocation? = null, force: Boolean = false) {
         if (!force && placesJob?.isActive == true) return
         placesJob?.cancel()
         placesJob = viewModelScope.launch {
             _state.update { it.copy(isLoadingPlaces = true, errorMessage = null) }
             try {
                 runCatching { ensureAnonymousUser() }
-                val nearby = getNearbyPlaces(location)
+                val nearby = loadCityPlaces(around)
                 val selectedId = _state.value.selectedPlaceId
                 getTourProgress.bindStops(
                     _state.value.routePlaces.map { it.place }.ifEmpty { nearby },
@@ -448,7 +449,24 @@ class LiveMapViewModel(
         }
     }
 
+    private suspend fun loadCityPlaces(around: GeoLocation?): List<OsmPlace> {
+        val city = getNearbyPlaces(KazanCenter)
+        val extras = around
+            ?.takeIf { location ->
+                distanceMeters(
+                    location.lat,
+                    location.lon,
+                    KazanCenter.lat,
+                    KazanCenter.lon,
+                ) >= USER_AREA_MERGE_METERS
+            }
+            ?.let { location -> runCatching { getNearbyPlaces(location) }.getOrDefault(emptyList()) }
+            .orEmpty()
+        return (city + extras).distinctBy { it.id }
+    }
+
     private companion object {
         const val PLAYBACK_TICK_MS = 500L
+        const val USER_AREA_MERGE_METERS = 1_500
     }
 }

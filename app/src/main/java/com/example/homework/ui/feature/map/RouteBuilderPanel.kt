@@ -69,7 +69,11 @@ fun RouteBuilderPanel(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (routePlaces.isEmpty()) "Маршрут" else "Маршрут · ${routePlaces.size}",
+                    text = if (routePlaces.isEmpty()) {
+                        "Маршрут"
+                    } else {
+                        "Маршрут · ${routePlaces.size}"
+                    },
                     color = TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -84,7 +88,11 @@ fun RouteBuilderPanel(
                 Text(text = subtitle, color = TextSecondary, fontSize = 12.sp)
             }
             Text(
-                text = if (expanded) "Скрыть" else "Открыть",
+                text = if (expanded) {
+                    "Скрыть"
+                } else {
+                    "Открыть"
+                },
                 color = ForestGreen,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
@@ -106,7 +114,10 @@ fun RouteBuilderPanel(
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (active) ForestGreen else Color(0x14163833))
                         .clickable { onTransportMode(mode) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(
+                            horizontal = 10.dp,
+                            vertical = 6.dp,
+                        ),
                 )
             }
         }
@@ -119,7 +130,11 @@ fun RouteBuilderPanel(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (routePlaces.isEmpty()) {
-                Text("Точек пока нет", color = TextSecondary, fontSize = 13.sp)
+                Text(
+                    text = "Точек пока нет",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                )
             } else {
                 routePlaces.forEach { item ->
                     RoutePlaceRow(
@@ -133,13 +148,32 @@ fun RouteBuilderPanel(
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PanelButton("Построить", onBuild, enabled = routePlaces.size >= 1 && transportMode.isRoutable)
-            PanelButton("Оптимизировать", onOptimize, filled = false, enabled = routePlaces.size >= 2 && transportMode.isRoutable)
+            PanelButton(
+                label = "Построить",
+                onClick = onBuild,
+                enabled = routePlaces.isNotEmpty() && transportMode.isRoutable
+            )
+            PanelButton(
+                label = "Оптимизировать",
+                onClick = onOptimize,
+                filled = false,
+                enabled = routePlaces.size >= 2 && transportMode.isRoutable,
+            )
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PanelButton("Яндекс", onOpenYandex, filled = false, enabled = routePlaces.isNotEmpty())
-            PanelButton("Поделиться", onShare, filled = false, enabled = routePlaces.isNotEmpty())
+            PanelButton(
+                label = "Яндекс",
+                onClick = onOpenYandex,
+                filled = false,
+                enabled = routePlaces.isNotEmpty(),
+            )
+            PanelButton(
+                label = "Поделиться",
+                onClick = onShare,
+                filled = false,
+                enabled = routePlaces.isNotEmpty(),
+            )
         }
         if (transportMode == TransportMode.Walking) {
             Spacer(Modifier.height(8.dp))
@@ -178,12 +212,38 @@ private fun RoutePlaceRow(
             modifier = Modifier.width(24.dp),
         )
         Column(Modifier.weight(1f)) {
-            Text(item.name, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-            Text("${item.visitDurationMinutes} мин · ${item.category.label}", color = TextSecondary, fontSize = 11.sp)
+            Text(
+                text = item.name,
+                color = TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+            Text(
+                text = "${item.visitDurationMinutes} мин · ${item.category.label}",
+                color = TextSecondary,
+                fontSize = 11.sp
+            )
         }
-        Text("−", modifier = Modifier.clickable(onClick = onMinus).padding(6.dp), fontSize = 16.sp)
-        Text("+", modifier = Modifier.clickable(onClick = onPlus).padding(6.dp), fontSize = 16.sp)
-        Text("✕", modifier = Modifier.clickable(onClick = onRemove).padding(6.dp), color = TextSecondary)
+        Text(
+            text = "−",
+            modifier = Modifier
+                .clickable(onClick = onMinus)
+                .padding(6.dp), fontSize = 16.sp
+        )
+        Text(
+            text = "+",
+            modifier = Modifier
+                .clickable(onClick = onPlus)
+                .padding(6.dp), fontSize = 16.sp
+        )
+        Text(
+            text = "✕",
+            modifier = Modifier
+                .clickable(onClick = onRemove)
+                .padding(6.dp),
+            color = TextSecondary
+        )
     }
 }
 
@@ -208,7 +268,13 @@ private fun PanelButton(
                     else -> Color(0x14163833)
                 },
             )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .clickable(
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .padding(
+                horizontal = 12.dp,
+                vertical = 8.dp,
+            ),
     )
 }

@@ -96,8 +96,12 @@ fun PlaceDetailsBottomSheet(
         PlaceSheetSize.Guide -> screenHeight
     }
 
-    val sheetHeight by animateDpAsState(targetValue = targetHeight, label = "placeSheetHeight")
+    val sheetHeight by animateDpAsState(
+        targetValue = targetHeight,
+        label = "placeSheetHeight",
+    )
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val meta = buildList {
         add(place.category.label)
         if (distanceMeters != null) add(formatDistance(distanceMeters))
@@ -105,15 +109,18 @@ fun PlaceDetailsBottomSheet(
     }.joinToString(" · ")
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = if (sheetSize == PlaceSheetSize.Guide) Color.Transparent else SheetWhite,
         shape = if (sheetSize == PlaceSheetSize.Guide) {
             RectangleShape
         } else {
-            RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            RoundedCornerShape(
+                topStart = 28.dp,
+                topEnd = 28.dp,
+            )
         },
         dragHandle = null,
+        onDismissRequest = onDismiss,
     ) {
         if (sheetSize == PlaceSheetSize.Guide) {
             AudioGuideContent(
@@ -122,10 +129,6 @@ fun PlaceDetailsBottomSheet(
                 narration = narration,
                 playback = playback,
                 tourProgress = tourProgress,
-                onBack = {
-                    detailsExpanded = true
-                    onCloseGuide()
-                },
                 onClose = onDismiss,
                 onTogglePlayback = onTogglePlayback,
                 onSeek = onSeek,
@@ -134,6 +137,10 @@ fun PlaceDetailsBottomSheet(
                 onNextStop = onNextStop,
                 onContinueRoute = onContinueRoute,
                 onRecenter = onRecenter,
+                onBack = {
+                    detailsExpanded = true
+                    onCloseGuide()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(sheetHeight),
@@ -155,7 +162,10 @@ fun PlaceDetailsBottomSheet(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .padding(bottom = 12.dp)
-                        .size(width = 36.dp, height = 4.dp)
+                        .size(
+                            width = 36.dp,
+                            height = 4.dp,
+                        )
                         .clip(RoundedCornerShape(50))
                         .background(Color(0xFFD5D3CE)),
                 )
@@ -164,19 +174,24 @@ fun PlaceDetailsBottomSheet(
                         place = place,
                         details = details,
                         meta = meta,
-                        onCollapse = { detailsExpanded = false },
                         onListen = onOpenGuide,
                         onToggleRoute = onToggleRoute,
                         inRoute = inRoute,
                         onMarkVisited = onMarkVisited,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f),
+                        onCollapse = {
+                            detailsExpanded = false
+                        },
                     )
                 } else {
                     CollapsedPlaceContent(
                         place = place,
                         details = details,
                         meta = meta,
-                        onExpand = { detailsExpanded = true },
+                        onExpand = {
+                            detailsExpanded = true
+                        },
                     )
                 }
             }

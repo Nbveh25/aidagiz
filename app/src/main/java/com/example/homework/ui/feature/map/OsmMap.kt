@@ -5,11 +5,21 @@ import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.drawable.Drawable
 import android.view.MotionEvent
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
@@ -55,6 +65,17 @@ fun OsmMap(
     onUserMapInteraction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (LocalInspectionMode.current) {
+        MapPreviewPlaceholder(
+            center = center,
+            user = user,
+            places = places,
+            routePlaces = routePlaces,
+            routeGeometry = routeGeometry,
+            modifier = modifier,
+        )
+        return
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val density = LocalDensity.current
     val iconSizePx = with(density) { 32.dp.roundToPx() }
@@ -555,3 +576,65 @@ private class DragDetectOverlay(
         return false
     }
 }
+
+@Composable
+private fun MapPreviewPlaceholder(
+    center: GeoLocation,
+    user: GeoLocation?,
+    places: List<OsmPlace>,
+    routePlaces: List<RoutePlace>,
+    routeGeometry: List<GeoLocation>?,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFE7E4DC)),
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val scale = 12_000f
+            fun point(location: GeoLocation): Offset = Offset(
+                x = size.width / 2f + ((location.lon - center.lon) * scale).toFloat(),
+                y = size.height / 2f - ((location.lat - center.lat) * scale).toFloat(),
+            )
+            for (step in 1..8) {
+                val y = size.height * step / 9f
+                val x = size.width * step / 9f
+                drawLine(Color(0x33163833), Offset(0f, y), Offset(size.width, y), 2f)
+                drawLine(Color(0x33163833), Offset(x, 0f), Offset(x, size.height), 2f)
+            }
+            val geometry = routeGeometry.orEmpty()
+            if (geometry.size >= 2) {
+                for (index in 1 until geometry.size) {
+                    drawLine(
+                        color = Color(0xFF3F7D41),
+                        start = point(geometry[index - 1]),
+                        end = point(geometry[index]),
+                        strokeWidth = 10f,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
+            places.forEach { place ->
+                drawCircle(
+                    color = Color(place.category.markerColor),
+                    radius = 16f,
+                    center = point(GeoLocation(place.lat, place.lon)),
+                )
+            }
+            routePlaces.forEach { stop ->
+                drawCircle(
+                    color = Color(0xFF3F7D41),
+                    radius = 20f,
+                    center = point(stop.location),
+                    style = Stroke(width = 5f, join = StrokeJoin.Round),
+                )
+            }
+            user?.let { location ->
+                drawCircle(Color(0x332F80FF), 48f, point(location))
+                drawCircle(Color(0xFF2F80FF), 14f, point(location))
+            }
+        }
+    }
+}
+
