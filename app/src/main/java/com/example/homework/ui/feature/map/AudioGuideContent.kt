@@ -98,7 +98,7 @@ fun AudioGuideContent(
     var showFullText by remember(place.id) { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        MapRoundIconButton(
+        /*MapRoundIconButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = stringResource(R.string.guide_back),
             onClick = onBack,
@@ -109,7 +109,7 @@ fun AudioGuideContent(
                     start = 16.dp,
                     top = 12.dp,
                 ),
-        )
+        )*/
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)

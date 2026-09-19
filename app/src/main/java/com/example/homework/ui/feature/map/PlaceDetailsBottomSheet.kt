@@ -95,7 +95,7 @@ fun PlaceDetailsBottomSheet(
 
     val targetHeight = when (sheetSize) {
         PlaceSheetSize.Peek -> screenHeight / 3
-        PlaceSheetSize.Details -> screenHeight * 2 / 3
+        PlaceSheetSize.Details -> screenHeight
         PlaceSheetSize.Guide -> screenHeight
     }
 
@@ -192,9 +192,12 @@ fun PlaceDetailsBottomSheet(
                         place = place,
                         details = details,
                         meta = meta,
+                        inRoute = inRoute,
+                        onToggleRoute = onToggleRoute,
                         onExpand = {
                             detailsExpanded = true
                         },
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -213,55 +216,70 @@ private fun CollapsedPlaceContent(
     place: OsmPlace,
     details: PlaceDetails?,
     meta: String,
+    inRoute: Boolean,
+    onToggleRoute: () -> Unit,
     onExpand: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PlacePhoto(
-            imageUrl = details?.imageUrl ?: place.imageUrl,
-            contentDescription = place.name,
-            modifier = Modifier
-                .size(76.dp)
-                .clip(RoundedCornerShape(16.dp)),
-        )
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = details?.name ?: place.name,
-                color = TextPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 22.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PlacePhoto(
+                imageUrl = details?.imageUrl ?: place.imageUrl,
+                contentDescription = place.name,
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(16.dp)),
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = details?.shortDescription.orEmpty(),
-                color = TextSecondary,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = details?.name ?: place.name,
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 22.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = details?.shortDescription.orEmpty(),
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.place_more),
+                tint = TextSecondary,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable(onClick = onExpand),
             )
         }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = stringResource(R.string.place_more),
-            tint = TextSecondary,
-            modifier = Modifier
-                .size(28.dp)
-                .clickable(onClick = onExpand),
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = meta,
+            color = TextSecondary,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.weight(1f))
+        PlaceSheetButton(
+            label = if (inRoute) {
+                stringResource(R.string.place_remove_from_route)
+            } else {
+                stringResource(R.string.place_add_to_route)
+            },
+            filled = !inRoute,
+            onClick = onToggleRoute,
         )
     }
-    Spacer(Modifier.height(14.dp))
-    Text(
-        text = meta,
-        color = TextSecondary,
-        fontSize = 13.sp,
-    )
 }
 
 @Composable
