@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.homework.entity.map.OsmPlace
 import com.example.homework.entity.map.PlaceFilter
+import com.example.homework.entity.map.YearRange
 import com.example.homework.entity.map.placeFilterCount
 import com.example.homework.ui.locale.labelRes
 import com.example.homework.ui.uikit.theme.ForestGreen
@@ -50,6 +51,34 @@ fun PlaceFilterBar(
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (active) ForestGreen else Color.White)
                     .clickable { onSelect(filter) }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun HistoricalYearBar(
+    selected: YearRange,
+    onSelect: (YearRange) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        YearRange.Options.forEach { range ->
+            val active = range == selected
+            Text(
+                text = stringResource(range.labelRes),
+                color = if (active) TextOnForest else TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .shadow(4.dp, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (active) ForestGreen else Color.White)
+                    .clickable { onSelect(range) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }

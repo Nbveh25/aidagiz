@@ -148,6 +148,13 @@
     <string name="error_optimize_route">Маршрутны оптимальләштереп булмады</string>
     <string name="error_build_route">Маршрутны төзеп булмады</string>
     <string name="error_load_places">Урыннарны йөкләп булмады</string>
+    <string name="error_load_historical_places">Тарихи урыннарны йөкләп булмады</string>
+    <string name="historical_place_name">Тарихи урын</string>
+    <string name="historical_details_loading">Хикәяне йөклибез…</string>
+    <string name="historical_first_mention">%d елдан</string>
+    <string name="year_range_1500_1700">1500–1700</string>
+    <string name="year_range_1700_1900">1700–1900</string>
+    <string name="year_range_1900_2000">1900–2000</string>
     <string name="error_http">Хата %d</string>
 
     <string name="brand_line_1">Казан</string>

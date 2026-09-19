@@ -136,4 +136,9 @@ fun JSONObject.stringOrNull(key: String): String? {
     return optString(key).takeIf { it.isNotBlank() }
 }
 
+fun JSONObject.intOrNull(key: String): Int? {
+    if (!has(key) || isNull(key)) return null
+    return optInt(key)
+}
+
 fun coordString(value: Double): String = String.format(Locale.US, "%.8f", value)

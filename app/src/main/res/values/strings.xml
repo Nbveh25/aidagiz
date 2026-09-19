@@ -150,6 +150,13 @@
     <string name="error_optimize_route">Не удалось оптимизировать маршрут</string>
     <string name="error_build_route">Не удалось построить маршрут</string>
     <string name="error_load_places">Не удалось загрузить места</string>
+    <string name="error_load_historical_places">Не удалось загрузить исторические места</string>
+    <string name="historical_place_name">Историческое место</string>
+    <string name="historical_details_loading">Загружаем рассказ…</string>
+    <string name="historical_first_mention">с %d г.</string>
+    <string name="year_range_1500_1700">1500–1700</string>
+    <string name="year_range_1700_1900">1700–1900</string>
+    <string name="year_range_1900_2000">1900–2000</string>
     <string name="error_http">Ошибка %d</string>
 
     <string name="brand_line_1">Казань</string>

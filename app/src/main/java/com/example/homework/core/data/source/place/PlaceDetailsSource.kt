@@ -11,7 +11,7 @@ class PlaceDetailsSource {
         name = place.name,
         shortDescription = shortDescription(place),
         fullDescription = fullDescription(place),
-        address = place.address ?: address(place.category),
+        address = place.address ?: if (place.isHistorical) "" else address(place.category),
         tags = tags(place.category),
         photoRes = photoRes(place),
         imageUrl = place.imageUrl,

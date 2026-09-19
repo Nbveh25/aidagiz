@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.homework.R
 import com.example.homework.core.domain.navigation.WalkingNavigation
+import com.example.homework.core.locale.AppLanguage
 import com.example.homework.core.locale.AppStrings
+import com.example.homework.core.locale.LocaleStore
 import com.example.homework.core.domain.usecase.ControlAiGuideUseCase
 import com.example.homework.core.domain.usecase.BuildAdventureRouteUseCase
 import com.example.homework.core.domain.usecase.EnsureAnonymousUserUseCase
 import com.example.homework.core.domain.usecase.GetAiGuideUseCase
+import com.example.homework.core.domain.usecase.GetHistoricalPlaceDetailsUseCase
+import com.example.homework.core.domain.usecase.GetHistoricalPlacesUseCase
 import com.example.homework.core.domain.usecase.GetNearbyPlacesUseCase
 import com.example.homework.core.domain.usecase.GetOsrmRouteUseCase
 import com.example.homework.core.domain.usecase.GetPlaceDetailsUseCase
@@ -26,10 +30,13 @@ import com.example.homework.entity.map.NavigationStatus
 import com.example.homework.entity.map.OsmPlace
 import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.TransportMode
+import com.example.homework.entity.map.YearRange
 import com.example.homework.entity.map.addRoutePlace
 import com.example.homework.entity.map.distanceMeters
 import com.example.homework.entity.map.removeRoutePlace
 import com.example.homework.entity.map.updateRoutePlaceVisitDuration
+import com.example.homework.entity.place.HistoricalPlaceDetails
+import com.example.homework.entity.place.PlaceDetails
 import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.KazanTime
 import com.example.homework.entity.tour.RouteStatus
@@ -38,6 +45,8 @@ import com.example.homework.entity.tour.toRoutePlaces
 import com.example.homework.ui.feature.map.state.LiveMapUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +57,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class LiveMapViewModel(
     private val getNearbyPlaces: GetNearbyPlacesUseCase,
+    private val getHistoricalPlaces: GetHistoricalPlacesUseCase,
+    private val getHistoricalPlaceDetails: GetHistoricalPlaceDetailsUseCase,
     private val getUserLocation: GetUserLocationUseCase,
     private val getPlaceDetails: GetPlaceDetailsUseCase,
     private val getAiGuide: GetAiGuideUseCase,
@@ -63,6 +74,7 @@ class LiveMapViewModel(
     private val buildAdventureRoute: BuildAdventureRouteUseCase,
     private val rebuildAdventureRoute: RebuildAdventureRouteUseCase,
     private val strings: AppStrings,
+    private val localeStore: LocaleStore,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         LiveMapUiState(permissionGranted = getUserLocation.hasPermission()),
@@ -72,6 +84,7 @@ class LiveMapViewModel(
     private val navigator = WalkingNavigation(strings)
     private var locationJob: Job? = null
     private var placesJob: Job? = null
+    private var historicalJob: Job? = null
     private var routeJob: Job? = null
     private var adventureJob: Job? = null
     private var didCenterOnUser = false
@@ -131,6 +144,12 @@ class LiveMapViewModel(
 
     fun setPlaceFilter(filter: PlaceFilter) {
         _state.update { it.copy(placeFilter = filter) }
+    }
+
+    fun setHistoricalYearRange(range: YearRange) {
+        if (range == _state.value.historicalYearRange) return
+        _state.update { it.copy(historicalYearRange = range) }
+        refreshHistoricalPlaces()
     }
 
     fun toggleRoutePanel() {
@@ -417,6 +436,7 @@ class LiveMapViewModel(
         getTourProgress.bindStops(places.map { it.place })
         _state.update {
             it.copy(
+                places = places.map { stop -> stop.place },
                 routePlaces = places,
                 adventure = route,
                 routeStatus = RouteStatus.Success,
@@ -424,6 +444,7 @@ class LiveMapViewModel(
                 routePanelExpanded = true,
                 paramsExpanded = false,
                 errorMessage = null,
+                placeFilter = PlaceFilter.All,
             )
         }
         refreshOsrmGeometry()
@@ -536,6 +557,7 @@ class LiveMapViewModel(
                     placeDetails = null,
                     guideNarration = null,
                     isGuideOpen = false,
+                    isLoadingHistoricalDetails = false,
                 )
             }
             return
@@ -543,15 +565,35 @@ class LiveMapViewModel(
         val place = _state.value.places.firstOrNull { it.id == placeId }
             ?: _state.value.routePlaces.firstOrNull { it.id == placeId }?.place
             ?: return
+        val historicalDetails = if (place.isHistorical) getHistoricalPlaceDetails.cached(place.id) else null
+        val displayPlace = historicalDetails?.let { enrichHistoricalPlace(place, it) } ?: place
+        val loadingHistorical = place.isHistorical &&
+            historicalDetails == null &&
+            WIKIDATA_ID.matches(place.id)
         getTourProgress.selectStop(placeId)
         controlAiGuide.resetForPlace()
         _state.update {
             it.copy(
                 selectedPlaceId = placeId,
-                placeDetails = getPlaceDetails(place),
-                guideNarration = getAiGuide(place),
+                placeDetails = if (loadingHistorical) null else placeDetailsFor(displayPlace, historicalDetails),
+                guideNarration = if (loadingHistorical) null else getAiGuide(displayPlace),
                 isGuideOpen = openGuide,
+                isLoadingHistoricalDetails = loadingHistorical,
             )
+        }
+        if (place.isHistorical) {
+            if (loadingHistorical) {
+                viewModelScope.launch {
+                    val details = runCatching { getHistoricalPlaceDetails(place.id) }.getOrNull()
+                    if (_state.value.selectedPlaceId != place.id) return@launch
+                    if (details == null) {
+                        _state.update { it.copy(isLoadingHistoricalDetails = false) }
+                        return@launch
+                    }
+                    applyHistoricalDetails(place.id, details)
+                }
+            }
+            return
         }
         viewModelScope.launch {
             getPlaceDetails.loadStory(place.id)
@@ -594,31 +636,33 @@ class LiveMapViewModel(
     private fun refreshPlaces(around: GeoLocation? = null, force: Boolean = false) {
         if (!force && placesJob?.isActive == true) return
         placesJob?.cancel()
+        historicalJob?.cancel()
         placesJob = viewModelScope.launch {
             _state.update { it.copy(isLoadingPlaces = true, errorMessage = null) }
             try {
                 runCatching { ensureAnonymousUser() }
-                val nearby = loadCityPlaces(around)
+                val years = _state.value.historicalYearRange
+                val (nearby, historicalResult) = coroutineScope {
+                    val nearbyDeferred = async { loadCityPlaces(around) }
+                    val historicalDeferred = async { loadHistoricalPlaces(around, years) }
+                    nearbyDeferred.await() to historicalDeferred.await()
+                }
+                val historical = historicalResult.getOrDefault(emptyList())
+                val merged = mergePlaces(nearby, historical)
                 val selectedId = _state.value.selectedPlaceId
                 getTourProgress.bindStops(
-                    _state.value.routePlaces.map { it.place }.ifEmpty { nearby },
+                    _state.value.routePlaces.map { it.place }.ifEmpty { merged },
                 )
                 selectedId?.let(getTourProgress::selectStop)
+                val historicalError = historicalErrorMessage(nearby, historicalResult)
                 _state.update {
-                    val selectedStillVisible = nearby.any { place -> place.id == it.selectedPlaceId } ||
-                        it.routePlaces.any { place -> place.id == it.selectedPlaceId }
-                    val nextSelected = if (selectedStillVisible) it.selectedPlaceId else null
-                    val selectedPlace = nearby.firstOrNull { place -> place.id == nextSelected }
-                        ?: it.routePlaces.firstOrNull { place -> place.id == nextSelected }?.place
-                    it.copy(
-                        places = nearby,
-                        selectedPlaceId = nextSelected,
-                        placeDetails = selectedPlace?.let(getPlaceDetails::invoke),
-                        guideNarration = selectedPlace?.let(getAiGuide::invoke),
-                        isGuideOpen = if (selectedStillVisible) it.isGuideOpen else false,
+                    it.withPlaces(merged).copy(
                         isLoadingPlaces = false,
-                        errorMessage = null,
+                        errorMessage = historicalError,
                     )
+                }
+                if (_state.value.historicalYearRange != years) {
+                    refreshHistoricalPlaces()
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -629,6 +673,26 @@ class LiveMapViewModel(
                         errorMessage = e.message ?: strings.get(R.string.error_load_places),
                     )
                 }
+            }
+        }
+    }
+
+    private fun refreshHistoricalPlaces() {
+        historicalJob?.cancel()
+        historicalJob = viewModelScope.launch {
+            val years = _state.value.historicalYearRange
+            val nearby = _state.value.places.filter { !it.isHistorical }
+            val historicalResult = loadHistoricalPlaces(_state.value.user, years)
+            val merged = mergePlaces(nearby, historicalResult.getOrDefault(emptyList()))
+            _state.update { state ->
+                val historicalError = historicalErrorMessage(nearby, historicalResult)
+                state.withPlaces(merged).copy(
+                    errorMessage = when {
+                        historicalError != null -> historicalError
+                        state.errorMessage == strings.get(R.string.error_load_historical_places) -> null
+                        else -> state.errorMessage
+                    },
+                )
             }
         }
     }
@@ -649,8 +713,115 @@ class LiveMapViewModel(
         return (city + extras).distinctBy { it.id }
     }
 
+    private suspend fun loadHistoricalPlaces(
+        around: GeoLocation?,
+        years: YearRange,
+    ): Result<List<OsmPlace>> {
+        val origin = around ?: _state.value.user ?: KazanCenter
+        val localizedName = strings.get(R.string.historical_place_name)
+        return runCatching {
+            getHistoricalPlaces(origin, HISTORICAL_RADIUS_METERS, years)
+                .map { place ->
+                    if (place.isHistorical) place.copy(name = localizedName) else place
+                }
+        }
+    }
+
+    private fun mergePlaces(nearby: List<OsmPlace>, historical: List<OsmPlace>): List<OsmPlace> =
+        (nearby + historical).distinctBy { it.id }.map { place ->
+            if (!place.isHistorical) {
+                place
+            } else {
+                getHistoricalPlaceDetails.cached(place.id)
+                    ?.let { details -> enrichHistoricalPlace(place, details) }
+                    ?: place
+            }
+        }
+
+    private fun applyHistoricalDetails(placeId: String, details: HistoricalPlaceDetails) {
+        _state.update { state ->
+            val updatedPlaces = state.places.map { place ->
+                if (place.id == placeId) enrichHistoricalPlace(place, details) else place
+            }
+            val updatedRoute = state.routePlaces.map { item ->
+                if (item.id == placeId) item.copy(place = enrichHistoricalPlace(item.place, details)) else item
+            }
+            val selected = updatedPlaces.firstOrNull { it.id == placeId }
+                ?: updatedRoute.firstOrNull { it.id == placeId }?.place
+                ?: return@update state
+            state.copy(
+                places = updatedPlaces,
+                routePlaces = updatedRoute,
+                placeDetails = placeDetailsFor(selected, details),
+                guideNarration = getAiGuide(selected),
+                isLoadingHistoricalDetails = false,
+            )
+        }
+    }
+
+    private fun enrichHistoricalPlace(place: OsmPlace, details: HistoricalPlaceDetails): OsmPlace =
+        place.copy(
+            name = historicalDisplayName(details),
+            description = details.story,
+            imageUrl = details.imageUrl ?: place.imageUrl,
+        )
+
+    private fun placeDetailsFor(place: OsmPlace, historical: HistoricalPlaceDetails?): PlaceDetails {
+        val base = getPlaceDetails(place)
+        if (historical == null) return base
+        val short = historical.story.substringBefore('.').trim()
+        return base.copy(
+            name = historicalDisplayName(historical),
+            imageUrl = historical.imageUrl ?: base.imageUrl,
+            fullDescription = historical.story.ifBlank { base.fullDescription },
+            shortDescription = if (short.isNotBlank()) "$short." else base.shortDescription,
+            firstMentionYear = historical.firstMentionYear,
+        )
+    }
+
+    private fun historicalDisplayName(details: HistoricalPlaceDetails): String {
+        val tatar = details.nameTt?.trim().orEmpty()
+        return if (localeStore.get() == AppLanguage.Tatar && tatar.isNotEmpty()) {
+            tatar
+        } else {
+            details.nameRu.ifBlank { details.placeId }
+        }
+    }
+
+    private fun historicalErrorMessage(
+        nearby: List<OsmPlace>,
+        historicalResult: Result<List<OsmPlace>>,
+    ): String? {
+        if (nearby.isNotEmpty() || historicalResult.isSuccess) return null
+        return strings.get(R.string.error_load_historical_places)
+    }
+
+    private fun LiveMapUiState.withPlaces(nextPlaces: List<OsmPlace>): LiveMapUiState {
+        val selectedStillVisible = nextPlaces.any { place -> place.id == selectedPlaceId } ||
+            routePlaces.any { place -> place.id == selectedPlaceId }
+        val nextSelected = if (selectedStillVisible) selectedPlaceId else null
+        val selectedPlace = nextPlaces.firstOrNull { place -> place.id == nextSelected }
+            ?: routePlaces.firstOrNull { place -> place.id == nextSelected }?.place
+        val historical = selectedPlace
+            ?.takeIf { it.isHistorical }
+            ?.let { getHistoricalPlaceDetails.cached(it.id) }
+        val loadingHistorical = selectedPlace?.isHistorical == true &&
+            historical == null &&
+            isLoadingHistoricalDetails
+        return copy(
+            places = nextPlaces,
+            selectedPlaceId = nextSelected,
+            placeDetails = if (loadingHistorical) null else selectedPlace?.let { placeDetailsFor(it, historical) },
+            guideNarration = if (loadingHistorical) null else selectedPlace?.let(getAiGuide::invoke),
+            isGuideOpen = if (selectedStillVisible) isGuideOpen else false,
+            isLoadingHistoricalDetails = loadingHistorical,
+        )
+    }
+
     private companion object {
         const val PLAYBACK_TICK_MS = 500L
         const val USER_AREA_MERGE_METERS = 1_500
+        const val HISTORICAL_RADIUS_METERS = 10_000
+        val WIKIDATA_ID = Regex("^Q\\d+$")
     }
 }

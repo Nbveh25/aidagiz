@@ -5,6 +5,7 @@ import com.example.homework.R
 import com.example.homework.entity.map.PlaceCategory
 import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.TransportMode
+import com.example.homework.entity.map.YearRange
 import com.example.homework.entity.tour.CulturalInterest
 import com.example.homework.entity.tour.WalkPace
 
@@ -17,6 +18,14 @@ val PlaceFilter.labelRes: Int
         PlaceFilter.Museums -> R.string.filter_museums
         PlaceFilter.Nature -> R.string.filter_nature
         PlaceFilter.Viewpoints -> R.string.filter_viewpoints
+    }
+
+val YearRange.labelRes: Int
+    @StringRes get() = when {
+        from == 1500 && to == 1700 -> R.string.year_range_1500_1700
+        from == 1700 && to == 1900 -> R.string.year_range_1700_1900
+        from == 1900 && to == 2000 -> R.string.year_range_1900_2000
+        else -> R.string.year_range_1700_1900
     }
 
 val PlaceCategory.labelRes: Int
@@ -36,6 +45,25 @@ val PlaceCategory.labelRes: Int
         PlaceCategory.Attraction -> R.string.category_attraction
         PlaceCategory.Viewpoint -> R.string.category_viewpoint
         PlaceCategory.Other -> R.string.category_other
+    }
+
+val PlaceCategory.markerIconRes: Int
+    get() = when (this) {
+        PlaceCategory.Mosque -> R.drawable.ic_category_mosque
+        PlaceCategory.Temple -> R.drawable.ic_category_temple
+        PlaceCategory.Museum -> R.drawable.ic_category_museum
+        PlaceCategory.Gallery -> R.drawable.ic_category_gallery
+        PlaceCategory.ArtsCentre -> R.drawable.ic_category_arts
+        PlaceCategory.Artwork -> R.drawable.ic_category_artwork
+        PlaceCategory.Theatre -> R.drawable.ic_category_theatre
+        PlaceCategory.Cafe -> R.drawable.ic_category_cafe
+        PlaceCategory.Restaurant -> R.drawable.ic_category_restaurant
+        PlaceCategory.Park -> R.drawable.ic_category_park
+        PlaceCategory.Garden -> R.drawable.ic_category_garden
+        PlaceCategory.Historic -> R.drawable.ic_category_historic
+        PlaceCategory.Attraction -> R.drawable.ic_category_attraction
+        PlaceCategory.Viewpoint -> R.drawable.ic_category_viewpoint
+        PlaceCategory.Other -> R.drawable.ic_category_other
     }
 
 val CulturalInterest.labelRes: Int

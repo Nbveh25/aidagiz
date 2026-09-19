@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -54,6 +55,7 @@ import com.example.homework.entity.place.PlaceDetails
 import com.example.homework.entity.tour.TourProgress
 import com.example.homework.ui.locale.labelRes
 import com.example.homework.ui.locale.localizedDistance
+import com.example.homework.ui.uikit.theme.ForestGreen
 import com.example.homework.ui.uikit.theme.ForestGreenDeep
 import com.example.homework.ui.uikit.theme.SheetWhite
 import com.example.homework.ui.uikit.theme.TextOnForest
@@ -72,6 +74,7 @@ fun PlaceDetailsBottomSheet(
     distanceMeters: Int?,
     isGuideOpen: Boolean,
     inRoute: Boolean,
+    isLoadingDetails: Boolean = false,
     onDismiss: () -> Unit,
     onToggleRoute: () -> Unit,
     onOpenGuide: () -> Unit,
@@ -108,6 +111,9 @@ fun PlaceDetailsBottomSheet(
     val meta = buildList {
         add(stringResource(place.category.labelRes))
         if (distanceMeters != null) add(localizedDistance(distanceMeters))
+        details?.firstMentionYear?.let { year ->
+            add(stringResource(R.string.historical_first_mention, year))
+        }
         (details?.openingHours ?: place.openingHours)?.let { add(it) }
     }.joinToString(" · ")
 
@@ -177,6 +183,7 @@ fun PlaceDetailsBottomSheet(
                         place = place,
                         details = details,
                         meta = meta,
+                        isLoadingDetails = isLoadingDetails,
                         onListen = onOpenGuide,
                         onToggleRoute = onToggleRoute,
                         inRoute = inRoute,
@@ -193,6 +200,7 @@ fun PlaceDetailsBottomSheet(
                         details = details,
                         meta = meta,
                         inRoute = inRoute,
+                        isLoadingDetails = isLoadingDetails,
                         onToggleRoute = onToggleRoute,
                         onExpand = {
                             detailsExpanded = true
@@ -217,6 +225,7 @@ private fun CollapsedPlaceContent(
     details: PlaceDetails?,
     meta: String,
     inRoute: Boolean,
+    isLoadingDetails: Boolean,
     onToggleRoute: () -> Unit,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
@@ -229,30 +238,35 @@ private fun CollapsedPlaceContent(
             PlacePhoto(
                 imageUrl = details?.imageUrl ?: place.imageUrl,
                 contentDescription = place.name,
+                loading = isLoadingDetails,
                 modifier = Modifier
                     .size(76.dp)
                     .clip(RoundedCornerShape(16.dp)),
             )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = details?.name ?: place.name,
-                    color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 22.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = details?.shortDescription.orEmpty(),
-                    color = TextSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (isLoadingDetails) {
+                    HistoricalDetailsLoader()
+                } else {
+                    Text(
+                        text = details?.name ?: place.name,
+                        color = TextPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 22.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = details?.shortDescription.orEmpty(),
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -263,12 +277,14 @@ private fun CollapsedPlaceContent(
                     .clickable(onClick = onExpand),
             )
         }
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = meta,
-            color = TextSecondary,
-            fontSize = 13.sp,
-        )
+        if (!isLoadingDetails) {
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = meta,
+                color = TextSecondary,
+                fontSize = 13.sp,
+            )
+        }
         Spacer(Modifier.weight(1f))
         PlaceSheetButton(
             label = if (inRoute) {
@@ -287,6 +303,7 @@ private fun ExpandedPlaceContent(
     place: OsmPlace,
     details: PlaceDetails?,
     meta: String,
+    isLoadingDetails: Boolean,
     onCollapse: () -> Unit,
     onListen: () -> Unit,
     onToggleRoute: () -> Unit,
@@ -298,6 +315,7 @@ private fun ExpandedPlaceContent(
         PlacePhoto(
             imageUrl = details?.imageUrl ?: place.imageUrl,
             contentDescription = place.name,
+            loading = isLoadingDetails,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
@@ -309,19 +327,23 @@ private fun ExpandedPlaceContent(
             verticalAlignment = Alignment.Top,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = details?.name ?: place.name,
-                    color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 22.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = meta,
-                    color = TextSecondary,
-                    fontSize = 13.sp,
-                )
+                if (isLoadingDetails) {
+                    HistoricalDetailsLoader()
+                } else {
+                    Text(
+                        text = details?.name ?: place.name,
+                        color = TextPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 22.sp,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = meta,
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                    )
+                }
             }
             Icon(
                 imageVector = Icons.Filled.KeyboardArrowDown,
@@ -333,22 +355,33 @@ private fun ExpandedPlaceContent(
             )
         }
         Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.place_ai_guide),
-            color = TextPrimary,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = details?.fullDescription.orEmpty(),
-            color = TextSecondary,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-        )
+        if (isLoadingDetails) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                HistoricalDetailsLoader()
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.place_ai_guide),
+                color = TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = details?.fullDescription.orEmpty(),
+                color = TextSecondary,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            )
+        }
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             PlaceSheetButton(
@@ -400,24 +433,58 @@ private fun PlacePhoto(
     imageUrl: String?,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    loading: Boolean = false,
 ) {
     Box(
         modifier = modifier.background(Color(0xFFE7E4DC)),
         contentAlignment = Alignment.Center,
     ) {
-        if (imageUrl.isNullOrBlank()) {
-            Text(
-                text = stringResource(R.string.place_no_photo),
-                color = TextSecondary,
-                fontSize = 12.sp,
-            )
-        } else {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
+        when {
+            loading && imageUrl.isNullOrBlank() -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = ForestGreen,
+                    strokeWidth = 2.dp,
+                )
+            }
+            imageUrl.isNullOrBlank() -> {
+                Text(
+                    text = stringResource(R.string.place_no_photo),
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                )
+            }
+            else -> {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun HistoricalDetailsLoader(
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            color = ForestGreen,
+            strokeWidth = 2.dp,
+        )
+        Text(
+            text = stringResource(R.string.historical_details_loading),
+            color = TextSecondary,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+        )
     }
 }

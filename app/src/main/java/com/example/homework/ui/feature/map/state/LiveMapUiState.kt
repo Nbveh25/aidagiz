@@ -10,6 +10,7 @@ import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.RoutePlace
 import com.example.homework.entity.map.RouteResult
 import com.example.homework.entity.map.TransportMode
+import com.example.homework.entity.map.YearRange
 import com.example.homework.entity.map.buildYandexMapsRouteUrl
 import com.example.homework.entity.map.filterPlaces
 import com.example.homework.entity.place.PlaceDetails
@@ -48,6 +49,8 @@ data class LiveMapUiState(
     val paramsExpanded: Boolean = false,
     val adventure: AdventureRoute? = null,
     val rebuildPrompt: String = "",
+    val historicalYearRange: YearRange = YearRange.Default,
+    val isLoadingHistoricalDetails: Boolean = false,
 ) {
     val selectedPlace: OsmPlace?
         get() = places.firstOrNull { it.id == selectedPlaceId }

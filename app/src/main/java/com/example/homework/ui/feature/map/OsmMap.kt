@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.Lifecycle
@@ -32,6 +33,7 @@ import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.map.OsmPlace
 import com.example.homework.entity.map.PlaceCategory
 import com.example.homework.entity.map.RoutePlace
+import com.example.homework.ui.locale.markerIconRes
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.events.MapListener
@@ -78,8 +80,8 @@ fun OsmMap(
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val density = LocalDensity.current
-    val iconSizePx = with(density) { 32.dp.roundToPx() }
-    val selectedSizePx = with(density) { 42.dp.roundToPx() }
+    val iconSizePx = with(density) { 34.dp.roundToPx() }
+    val selectedSizePx = with(density) { 44.dp.roundToPx() }
     val clusterSizePx = with(density) { 44.dp.roundToPx() }
     val routeSizePx = with(density) { 36.dp.roundToPx() }
     val strokeWidth = with(density) { 6.dp.toPx() }
@@ -231,7 +233,7 @@ private class OsmMapHolder {
 
 private data class MarkerIconKey(
     val color: Long,
-    val label: String,
+    val iconRes: Int,
     val selected: Boolean,
     val size: Int,
 )
@@ -271,15 +273,16 @@ private fun syncPlaceMarkers(
     clusterSizePx: Int,
 ) {
     val zoom = mapView.zoomLevelDouble
-    val clustered = zoom < 14.0
-    val ids = places.map { it.id }
+    val clustered = zoom < 14.0 && holder.routePlaces.isEmpty()
+    val displayPlaces = if (holder.routePlaces.isNotEmpty()) emptyList() else places
+    val ids = displayPlaces.map { it.id }
     if (!holder.needsClusterRefresh &&
         holder.clusterZoom == zoom &&
         holder.lastClusteredIds == ids &&
         holder.placeMarkers.keys == ids.toSet() &&
         !clustered
     ) {
-        places.forEach { place ->
+        displayPlaces.forEach { place ->
             holder.placeMarkers[place.id]?.icon = markerDrawable(
                 mapView,
                 holder,
@@ -300,7 +303,7 @@ private fun syncPlaceMarkers(
     holder.clusterMarkers.clear()
 
     if (!clustered) {
-        places.forEach { place ->
+        displayPlaces.forEach { place ->
             val marker = Marker(mapView).apply {
                 position = GeoPoint(place.lat, place.lon)
                 title = place.name
@@ -325,7 +328,7 @@ private fun syncPlaceMarkers(
     }
 
     val cell = 0.012 * (14.0 - zoom).coerceAtLeast(0.5)
-    places.groupBy { place ->
+    displayPlaces.groupBy { place ->
         (place.lat / cell).roundToInt() to (place.lon / cell).roundToInt()
     }.forEach { (_, group) ->
         if (group.size == 1) {
@@ -403,11 +406,13 @@ private fun syncRouteMarkers(
         }
         marker.position = GeoPoint(routePlace.lat, routePlace.lon)
         marker.title = routePlace.name
-        marker.icon = numberedDrawable(
+        val selected = routePlace.id == selectedPlaceId
+        marker.icon = markerDrawable(
             mapView,
-            routePlace.order.toString(),
-            sizePx,
-            selected = routePlace.id == selectedPlaceId,
+            holder,
+            routePlace.category,
+            selected = selected,
+            sizePx = if (selected) holder.selectedSizePx else sizePx,
         )
     }
 }
@@ -453,30 +458,45 @@ private fun markerDrawable(
     selected: Boolean,
     sizePx: Int,
 ): Drawable {
-    val key = MarkerIconKey(category.markerColor, category.markerLabel, selected, sizePx)
+    val key = MarkerIconKey(category.markerColor, category.markerIconRes, selected, sizePx)
     return holder.iconCache.getOrPut(key) {
-        circleLabelDrawable(
+        circleIconDrawable(
             mapView = mapView,
             color = category.markerColor.toInt(),
-            label = category.markerLabel,
+            iconRes = category.markerIconRes,
             sizePx = sizePx,
             strokeWidth = if (selected) sizePx * 0.12f else sizePx * 0.07f,
         )
     }
 }
 
-private fun numberedDrawable(
+private fun circleIconDrawable(
     mapView: MapView,
-    label: String,
+    color: Int,
+    iconRes: Int,
     sizePx: Int,
-    selected: Boolean,
-): Drawable = circleLabelDrawable(
-    mapView = mapView,
-    color = 0xFF3F7D41.toInt(),
-    label = label,
-    sizePx = sizePx,
-    strokeWidth = if (selected) sizePx * 0.12f else sizePx * 0.07f,
-)
+    strokeWidth: Float,
+): Drawable {
+    val bitmap = createBitmap(sizePx, sizePx)
+    val canvas = Canvas(bitmap)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+    val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = 0xFFFFFFFF.toInt()
+        style = Paint.Style.STROKE
+        this.strokeWidth = strokeWidth
+    }
+    val radius = sizePx / 2f - strokeWidth
+    canvas.drawCircle(sizePx / 2f, sizePx / 2f, radius, fill)
+    canvas.drawCircle(sizePx / 2f, sizePx / 2f, radius, stroke)
+    val icon = ContextCompat.getDrawable(mapView.context, iconRes)?.mutate()
+    if (icon != null) {
+        val padding = (sizePx * 0.22f).roundToInt()
+        icon.setBounds(padding, padding, sizePx - padding, sizePx - padding)
+        icon.setTint(0xFFFFFFFF.toInt())
+        icon.draw(canvas)
+    }
+    return bitmap.toDrawable(mapView.resources)
+}
 
 private fun clusterDrawable(mapView: MapView, count: Int, sizePx: Int): Drawable =
     circleLabelDrawable(

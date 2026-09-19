@@ -50,6 +50,7 @@ import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.RoutePlace
 import com.example.homework.entity.map.RouteResult
 import com.example.homework.entity.map.TransportMode
+import com.example.homework.entity.map.YearRange
 import com.example.homework.ui.feature.map.state.LiveMapUiState
 import com.example.homework.ui.locale.localizedPlacesCount
 import com.example.homework.ui.uikit.component.LanguageToggle
@@ -102,6 +103,7 @@ fun LiveMapScreen(
         onPlaceSelected = viewModel::selectPlace,
         onUserMapInteraction = viewModel::onUserMapInteraction,
         onSetPlaceFilter = viewModel::setPlaceFilter,
+        onSetHistoricalYearRange = viewModel::setHistoricalYearRange,
         onAllowPermission = {
             permissionLauncher.launch(
                 arrayOf(
@@ -168,6 +170,7 @@ fun LiveMapContent(
     onPlaceSelected: (String?) -> Unit = {},
     onUserMapInteraction: () -> Unit = {},
     onSetPlaceFilter: (PlaceFilter) -> Unit = {},
+    onSetHistoricalYearRange: (YearRange) -> Unit = {},
     onAllowPermission: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onRetryPlaces: () -> Unit = {},
@@ -256,6 +259,10 @@ fun LiveMapContent(
                     selected = state.placeFilter,
                     onSelect = onSetPlaceFilter,
                 )
+                HistoricalYearBar(
+                    selected = state.historicalYearRange,
+                    onSelect = onSetHistoricalYearRange,
+                )
             }
             if (!state.permissionGranted) {
                 PermissionBanner(
@@ -319,6 +326,7 @@ fun LiveMapContent(
                     distanceMeters = state.user?.let { place.distanceMetersTo(it) },
                     isGuideOpen = state.isGuideOpen,
                     inRoute = state.selectedInRoute,
+                    isLoadingDetails = state.isLoadingHistoricalDetails,
                     onDismiss = onDismissPlace,
                     onToggleRoute = onToggleSelectedInRoute,
                     onOpenGuide = onOpenGuide,

@@ -13,4 +13,5 @@ data class PlaceDetails(
     val imageUrl: String?,
     val openingHours: String?,
     val category: PlaceCategory,
+    val firstMentionYear: Int? = null,
 )

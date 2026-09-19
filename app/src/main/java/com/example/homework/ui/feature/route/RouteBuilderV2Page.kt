@@ -346,6 +346,7 @@ private fun RoutePlannerContent(
                         distanceMeters = state.user?.let { place.distanceMetersTo(it) },
                         isGuideOpen = state.isGuideOpen,
                         inRoute = state.selectedInRoute,
+                        isLoadingDetails = state.isLoadingHistoricalDetails,
                         onDismiss = onDismissPlace,
                         onToggleRoute = onToggleSelectedInRoute,
                         onOpenGuide = onOpenGuide,

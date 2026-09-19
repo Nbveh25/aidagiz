@@ -16,6 +16,7 @@ data class OsmPlace(
     val departureAt: String? = null,
     val travelDurationMinutes: Int? = null,
     val visitDurationMinutes: Int? = null,
+    val isHistorical: Boolean = false,
 ) {
     fun distanceMetersTo(location: GeoLocation): Int =
         distanceMeters(lat, lon, location.lat, location.lon)

@@ -5,6 +5,7 @@ import com.example.homework.core.data.repository.AnonymousUserRepositoryImpl
 import com.example.homework.core.data.repository.LocationRatingRepositoryImpl
 import com.example.homework.core.data.repository.OsrmRepositoryImpl
 import com.example.homework.core.data.repository.PlaceDetailsRepositoryImpl
+import com.example.homework.core.data.repository.HistoricalPlacesRepositoryImpl
 import com.example.homework.core.data.repository.PlacesRepositoryImpl
 import com.example.homework.core.data.repository.RouteRepositoryImpl
 import com.example.homework.core.data.repository.TourRepositoryImpl
@@ -12,12 +13,14 @@ import com.example.homework.core.data.repository.UserLocationRepositoryImpl
 import com.example.homework.core.data.repository.VoiceReadingRepositoryImpl
 import com.example.homework.core.data.source.api.GuideApiClient
 import com.example.homework.core.data.source.api.GuideApiConfig
+import com.example.homework.core.data.source.api.GuideApiReachability
 import com.example.homework.core.data.source.guide.AiGuideSource
 import com.example.homework.core.data.source.guide.VoiceReadingSource
 import com.example.homework.core.data.source.osrm.OsrmSource
 import com.example.homework.core.data.source.overpass.OverpassSource
 import com.example.homework.core.data.source.place.PlaceDetailsSource
 import com.example.homework.core.data.source.place.PlaceStorySource
+import com.example.homework.core.data.source.place.HistoricalPlacesApiSource
 import com.example.homework.core.data.source.place.PlacesApiSource
 import com.example.homework.core.data.source.rating.LocationRatingSource
 import com.example.homework.core.data.source.route.RouteApiSource
@@ -32,6 +35,7 @@ import com.example.homework.core.domain.repository.AnonymousUserRepository
 import com.example.homework.core.domain.repository.LocationRatingRepository
 import com.example.homework.core.domain.repository.OsrmRepository
 import com.example.homework.core.domain.repository.PlaceDetailsRepository
+import com.example.homework.core.domain.repository.HistoricalPlacesRepository
 import com.example.homework.core.domain.repository.PlacesRepository
 import com.example.homework.core.domain.repository.RouteRepository
 import com.example.homework.core.domain.repository.TourRepository
@@ -42,6 +46,8 @@ import com.example.homework.core.domain.usecase.ContinueRouteUseCase
 import com.example.homework.core.domain.usecase.ControlAiGuideUseCase
 import com.example.homework.core.domain.usecase.EnsureAnonymousUserUseCase
 import com.example.homework.core.domain.usecase.GetAiGuideUseCase
+import com.example.homework.core.domain.usecase.GetHistoricalPlaceDetailsUseCase
+import com.example.homework.core.domain.usecase.GetHistoricalPlacesUseCase
 import com.example.homework.core.domain.usecase.GetNearbyPlacesUseCase
 import com.example.homework.core.domain.usecase.GetOsrmRouteUseCase
 import com.example.homework.core.domain.usecase.GetPlaceDetailsUseCase
@@ -60,6 +66,8 @@ import com.example.homework.core.domain.usecase.impl.RebuildAdventureRouteUseCas
 import com.example.homework.core.domain.usecase.impl.ControlAiGuideUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.EnsureAnonymousUserUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.GetAiGuideUseCaseImpl
+import com.example.homework.core.domain.usecase.impl.GetHistoricalPlaceDetailsUseCaseImpl
+import com.example.homework.core.domain.usecase.impl.GetHistoricalPlacesUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.GetNearbyPlacesUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.GetOsrmRouteUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.GetPlaceDetailsUseCaseImpl
@@ -104,10 +112,12 @@ val dataModule = module {
     single { UserIdStore(androidContext()) }
     single { LocaleStore(androidContext()) }
     single { AppStrings(androidContext()) }
+    single { GuideApiReachability() }
     single { UserLocationSource(androidContext()) }
     single { AiGuideSource(androidContext()) }
     singleOf(::AnonymousUserSource)
     singleOf(::PlacesApiSource)
+    singleOf(::HistoricalPlacesApiSource)
     singleOf(::OverpassSource)
     singleOf(::OsrmSource)
     singleOf(::RouteApiSource)
@@ -118,6 +128,7 @@ val dataModule = module {
     singleOf(::TourSource)
 
     singleOf(::PlacesRepositoryImpl) bind PlacesRepository::class
+    singleOf(::HistoricalPlacesRepositoryImpl) bind HistoricalPlacesRepository::class
     singleOf(::OsrmRepositoryImpl) bind OsrmRepository::class
     singleOf(::UserLocationRepositoryImpl) bind UserLocationRepository::class
     singleOf(::PlaceDetailsRepositoryImpl) bind PlaceDetailsRepository::class
@@ -131,6 +142,8 @@ val dataModule = module {
 
 val domainModule = module {
     factoryOf(::GetNearbyPlacesUseCaseImpl) bind GetNearbyPlacesUseCase::class
+    factoryOf(::GetHistoricalPlacesUseCaseImpl) bind GetHistoricalPlacesUseCase::class
+    factoryOf(::GetHistoricalPlaceDetailsUseCaseImpl) bind GetHistoricalPlaceDetailsUseCase::class
     factoryOf(::GetUserLocationUseCaseImpl) bind GetUserLocationUseCase::class
     factoryOf(::GetPlaceDetailsUseCaseImpl) bind GetPlaceDetailsUseCase::class
     factoryOf(::GetAiGuideUseCaseImpl) bind GetAiGuideUseCase::class
