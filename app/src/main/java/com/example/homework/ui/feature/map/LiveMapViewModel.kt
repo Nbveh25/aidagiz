@@ -92,6 +92,7 @@ class LiveMapViewModel(
     private var routeJob: Job? = null
     private var adventureJob: Job? = null
     private var corridorImageJob: Job? = null
+    private var navigationGuideJob: Job? = null
     private var didCenterOnUser = false
     private var didReloadAroundUser = false
 
@@ -338,6 +339,7 @@ class LiveMapViewModel(
         publishNavigation()
         _state.update { it.copy(routePanelExpanded = false, selectedPlaceId = null, isGuideOpen = false) }
         if (effect.rebuildRoute) requestOsrmRoute(fromNavigation = true)
+        if (_state.value.isAiGuideEnabled) startNavigationGuide()
     }
 
     fun pauseOrResumeNavigation() {
@@ -358,11 +360,27 @@ class LiveMapViewModel(
         val effect = navigator.goToNextPlace(_state.value.user)
         publishNavigation()
         if (effect.rebuildRoute) requestOsrmRoute(fromNavigation = true)
+        if (!navigator.state.isActive) {
+            stopNavigationGuide()
+        } else if (_state.value.isAiGuideEnabled) {
+            startNavigationGuide()
+        }
     }
 
     fun stopNavigation() {
         navigator.stop()
         publishNavigation()
+        stopNavigationGuide()
+    }
+
+    fun toggleAiGuide() {
+        val enabled = !_state.value.isAiGuideEnabled
+        _state.update { it.copy(isAiGuideEnabled = enabled) }
+        if (enabled) {
+            startNavigationGuide()
+        } else {
+            stopNavigationGuide()
+        }
     }
 
     fun openGuide() {
@@ -641,9 +659,17 @@ class LiveMapViewModel(
                     refreshPlaces(around = location, force = true)
                 }
                 if (navigator.state.isActive) {
+                    val previousStatus = navigator.state.status
                     val effect = navigator.onLocation(location, System.currentTimeMillis())
                     publishNavigation()
                     if (effect.rebuildRoute) requestOsrmRoute(fromNavigation = true)
+                    if (
+                        _state.value.isAiGuideEnabled &&
+                        previousStatus != NavigationStatus.Arrived &&
+                        navigator.state.status == NavigationStatus.Arrived
+                    ) {
+                        startNavigationGuide()
+                    }
                 }
             }
         }
@@ -897,6 +923,30 @@ class LiveMapViewModel(
             )
         }
     }
+
+    private fun startNavigationGuide() {
+        val place = currentNavigationPlace() ?: return
+        navigationGuideJob?.cancel()
+        navigationGuideJob = viewModelScope.launch {
+            controlAiGuide.resetForPlace()
+            _state.update { it.copy(guideNarration = getAiGuide(place)) }
+            runCatching { getAiGuide.prepareAudio(place) }
+            if (!_state.value.isAiGuideEnabled) return@launch
+            if (!_state.value.guidePlayback.isPlaying) {
+                controlAiGuide.togglePlayback()
+            }
+        }
+    }
+
+    private fun stopNavigationGuide() {
+        navigationGuideJob?.cancel()
+        if (_state.value.guidePlayback.isPlaying) {
+            controlAiGuide.togglePlayback()
+        }
+    }
+
+    private fun currentNavigationPlace(): OsmPlace? =
+        _state.value.routePlaces.getOrNull(_state.value.navigation.placeIndex)?.place
 
     private companion object {
         const val PLAYBACK_TICK_MS = 500L

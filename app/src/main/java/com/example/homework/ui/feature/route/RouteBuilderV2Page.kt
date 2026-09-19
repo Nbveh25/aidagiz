@@ -11,8 +11,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +45,7 @@ import com.example.homework.R
 import com.example.homework.core.locale.AppLanguage
 import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.WalkPace
+import com.example.homework.ui.feature.map.AiGuideFab
 import com.example.homework.ui.feature.map.LiveMapViewModel
 import com.example.homework.ui.feature.map.NavigationHud
 import com.example.homework.ui.feature.map.OsmMap
@@ -120,6 +123,7 @@ fun RouteBuilderV2Page(
                 onRetryNavigation = viewModel::retryNavigation,
                 onNextNavigationPlace = viewModel::nextNavigationPlace,
                 onStopNavigation = viewModel::stopNavigation,
+                onToggleAiGuide = viewModel::toggleAiGuide,
                 onDismissPlace = { viewModel.selectPlace(null) },
                 onToggleSelectedInRoute = viewModel::toggleSelectedInRoute,
                 onOpenGuide = viewModel::openGuide,
@@ -250,6 +254,7 @@ private fun RoutePlannerContent(
     onRetryNavigation: () -> Unit,
     onNextNavigationPlace: () -> Unit,
     onStopNavigation: () -> Unit,
+    onToggleAiGuide: () -> Unit,
     onDismissPlace: () -> Unit,
     onToggleSelectedInRoute: () -> Unit,
     onOpenGuide: () -> Unit,
@@ -297,10 +302,22 @@ private fun RoutePlannerContent(
                 .fillMaxWidth()
                 .offset { IntOffset(0, -panelLift) },
         ) {
-                RecenterChip(
-                    onClick = onRecenter,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RecenterChip(onClick = onRecenter)
+                    if (state.navigation.isActive) {
+                        AiGuideFab(
+                            enabled = state.isAiGuideEnabled,
+                            speaking = state.isAiGuideEnabled && state.guidePlayback.isPlaying,
+                            onClick = onToggleAiGuide,
+                        )
+                    }
+                }
                 if (state.navigation.isActive) {
                     NavigationHud(
                         navigation = state.navigation,

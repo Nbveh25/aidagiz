@@ -30,6 +30,7 @@ data class LiveMapUiState(
     val guidePlayback: AiGuidePlayback = AiGuidePlayback(),
     val tourProgress: TourProgress = TourProgress(),
     val isGuideOpen: Boolean = false,
+    val isAiGuideEnabled: Boolean = false,
     val isLoadingPlaces: Boolean = false,
     val errorMessage: String? = null,
     val permissionGranted: Boolean = false,

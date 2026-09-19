@@ -126,6 +126,7 @@ fun LiveMapScreen(
         onRetryNavigation = viewModel::retryNavigation,
         onNextNavigationPlace = viewModel::nextNavigationPlace,
         onStopNavigation = viewModel::stopNavigation,
+        onToggleAiGuide = viewModel::toggleAiGuide,
         onToggleRoutePanel = viewModel::toggleRoutePanel,
         onRemoveFromRoute = viewModel::removeFromRoute,
         onDurationDelta = viewModel::changeVisitDuration,
@@ -179,6 +180,7 @@ fun LiveMapContent(
     onRetryNavigation: () -> Unit = {},
     onNextNavigationPlace: () -> Unit = {},
     onStopNavigation: () -> Unit = {},
+    onToggleAiGuide: () -> Unit = {},
     onToggleRoutePanel: () -> Unit = {},
     onRemoveFromRoute: (String) -> Unit = {},
     onDurationDelta: (String, Int) -> Unit = { _, _ -> },
@@ -283,7 +285,20 @@ fun LiveMapContent(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RecenterChip(onClick = onRecenter)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RecenterChip(onClick = onRecenter)
+                if (state.navigation.isActive) {
+                    AiGuideFab(
+                        enabled = state.isAiGuideEnabled,
+                        speaking = state.isAiGuideEnabled && state.guidePlayback.isPlaying,
+                        onClick = onToggleAiGuide,
+                    )
+                }
+            }
             if (state.navigation.isActive) {
                 NavigationHud(
                     navigation = state.navigation,

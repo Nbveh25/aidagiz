@@ -4,15 +4,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.HeadsetMic
+import androidx.compose.material.icons.outlined.HeadsetMic
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -31,6 +40,7 @@ import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
 import com.example.homework.ui.uikit.theme.TextSecondary
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NavigationHud(
     navigation: NavigationState,
@@ -80,9 +90,9 @@ fun NavigationHud(
             )
         }
         Spacer(Modifier.height(12.dp))
-        Row(
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (navigation.status) {
                 NavigationStatus.Error, NavigationStatus.WaitingLocation ->
@@ -131,6 +141,34 @@ fun NavigationHud(
                 filled = false,
             )
         }
+    }
+}
+
+@Composable
+fun AiGuideFab(
+    enabled: Boolean,
+    speaking: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = modifier.size(56.dp),
+        shape = CircleShape,
+        containerColor = if (enabled) ForestGreen else Color.White,
+        contentColor = if (enabled) TextOnForest else ForestGreen,
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
+    ) {
+        Icon(
+            imageVector = when {
+                speaking -> Icons.Filled.GraphicEq
+                enabled -> Icons.Filled.HeadsetMic
+                else -> Icons.Outlined.HeadsetMic
+            },
+            contentDescription = stringResource(
+                if (enabled) R.string.nav_guide_on else R.string.nav_guide_off,
+            ),
+        )
     }
 }
 

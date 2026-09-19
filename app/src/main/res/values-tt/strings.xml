@@ -105,6 +105,8 @@
     <string name="nav_waiting">Көтәбез…</string>
     <string name="nav_me">Мин</string>
     <string name="nav_exit">Чыгу</string>
+    <string name="nav_guide_on">Гид кабык</string>
+    <string name="nav_guide_off">Гид сүндерелгән</string>
     <string name="nav_status_waiting">Геолокацияне көтәбез</string>
     <string name="nav_status_building">Маршрут төзибез</string>
     <string name="nav_status_navigating">Навигация</string>

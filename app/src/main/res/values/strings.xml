@@ -107,6 +107,8 @@
     <string name="nav_waiting">Ждём…</string>
     <string name="nav_me">Я</string>
     <string name="nav_exit">Выйти</string>
+    <string name="nav_guide_on">Гид вкл</string>
+    <string name="nav_guide_off">Гид выкл</string>
     <string name="nav_status_waiting">Ждём геолокацию</string>
     <string name="nav_status_building">Строим маршрут</string>
     <string name="nav_status_navigating">Навигация</string>
