@@ -44,6 +44,7 @@ fun NavigationHud(
 ) {
     Column(
         modifier = modifier
+            .padding(bottom = 36.dp)
             .fillMaxWidth()
             .shadow(10.dp, RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
