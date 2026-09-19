@@ -14,6 +14,7 @@ import kotlin.math.sqrt
 
 data class NavigationEffect(
     val rebuildRoute: Boolean = false,
+    val arrivedAtLastStop: Boolean = false,
 )
 
 class WalkingNavigation(
@@ -28,12 +29,16 @@ class WalkingNavigation(
     private var consecutiveArrival = 0
     private var consecutiveOffRoute = 0
     private var lastRebuildAtMs = 0L
+    private var trimmedPlaceIndex: Int? = null
+    private var lastStopAnnounced = false
 
     fun start(routePlaces: List<RoutePlace>, location: GeoLocation?): NavigationEffect {
         places = routePlaces
         consecutiveArrival = 0
         consecutiveOffRoute = 0
         lastRebuildAtMs = 0L
+        trimmedPlaceIndex = null
+        lastStopAnnounced = false
         state = NavigationState(
             status = if (location == null) {
                 NavigationStatus.WaitingLocation
@@ -51,6 +56,8 @@ class WalkingNavigation(
         places = emptyList()
         consecutiveArrival = 0
         consecutiveOffRoute = 0
+        trimmedPlaceIndex = null
+        lastStopAnnounced = false
         state = NavigationState()
     }
 
@@ -87,6 +94,8 @@ class WalkingNavigation(
             )
             return NavigationEffect()
         }
+        trimmedPlaceIndex = null
+        lastStopAnnounced = false
         state = state.copy(
             status = NavigationStatus.BuildingRoute,
             message = null,
@@ -108,6 +117,8 @@ class WalkingNavigation(
         }
         consecutiveArrival = 0
         consecutiveOffRoute = 0
+        trimmedPlaceIndex = null
+        lastStopAnnounced = false
         state = state.copy(
             status = if (location == null) {
                 NavigationStatus.WaitingLocation
@@ -125,6 +136,7 @@ class WalkingNavigation(
 
     fun onRouteBuilt(result: RouteResult) {
         consecutiveOffRoute = 0
+        trimmedPlaceIndex = null
         state = state.copy(
             status = NavigationStatus.Navigating,
             route = result,
@@ -153,6 +165,22 @@ class WalkingNavigation(
             )
             return NavigationEffect(rebuildRoute = true)
         }
+        if (state.status == NavigationStatus.Arrived) {
+            if (current != null) {
+                val toPlace = distanceMeters(location.lat, location.lon, current.lat, current.lon)
+                val trimmed = hideApproachedLine(location, current, state.route)
+                val announceLast = remainingPlaces().size <= 1 &&
+                    toPlace <= LINE_HIDE_RADIUS_METERS &&
+                    !lastStopAnnounced
+                if (announceLast) lastStopAnnounced = true
+                state = state.copy(
+                    route = trimmed,
+                    distanceToPlaceMeters = toPlace,
+                )
+                if (announceLast) return NavigationEffect(arrivedAtLastStop = true)
+            }
+            return NavigationEffect()
+        }
         if (state.status != NavigationStatus.Navigating) return NavigationEffect()
         if (location.accuracyMeters > 100f) {
             state = state.copy(
@@ -169,9 +197,21 @@ class WalkingNavigation(
             return NavigationEffect()
         }
         val toPlace = distanceMeters(location.lat, location.lon, current.lat, current.lon)
+        val route = hideApproachedLine(location, current, state.route)
+        if (remainingPlaces().size <= 1 && toPlace <= LINE_HIDE_RADIUS_METERS && !lastStopAnnounced) {
+            lastStopAnnounced = true
+            state = state.copy(
+                status = NavigationStatus.Arrived,
+                route = route,
+                distanceToPlaceMeters = toPlace,
+                accuracyWarning = false,
+                instruction = strings.get(R.string.nav_arrive),
+                message = null,
+            )
+            return NavigationEffect(arrivedAtLastStop = true)
+        }
         val arrivalRadius = maxOf(35, minOf(location.accuracyMeters.toInt(), 60))
         consecutiveArrival = if (toPlace <= arrivalRadius) consecutiveArrival + 1 else 0
-        val route = state.route
         val toRoute = route?.let { distanceMetersToRoute(location, it.geometry) }
         var stepIndex = state.stepIndex
         if (route != null && stepIndex < route.steps.lastIndex) {
@@ -189,6 +229,7 @@ class WalkingNavigation(
         if (consecutiveArrival >= 2) {
             state = state.copy(
                 status = NavigationStatus.Arrived,
+                route = route,
                 distanceToPlaceMeters = toPlace,
                 distanceToRouteMeters = toRoute,
                 accuracyWarning = false,
@@ -225,6 +266,23 @@ class WalkingNavigation(
     }
 
     fun remainingPlaces(): List<RoutePlace> = places.drop(state.placeIndex)
+
+    private fun hideApproachedLine(
+        location: GeoLocation,
+        current: RoutePlace,
+        route: RouteResult?,
+    ): RouteResult? {
+        if (route == null) return null
+        val toPlace = distanceMeters(location.lat, location.lon, current.lat, current.lon)
+        if (toPlace > LINE_HIDE_RADIUS_METERS) return route
+        if (trimmedPlaceIndex == state.placeIndex) return route
+        trimmedPlaceIndex = state.placeIndex
+        return if (remainingPlaces().size <= 1) {
+            route.copy(geometry = emptyList(), steps = emptyList())
+        } else {
+            remainingRouteFrom(current.location, route)
+        }
+    }
 
     private fun formatManeuver(step: RouteStep): String {
         val modifier = when (step.modifier?.lowercase()) {
@@ -265,7 +323,32 @@ class WalkingNavigation(
 
     private companion object {
         const val REBUILD_INTERVAL_MS = 20_000L
+        const val LINE_HIDE_RADIUS_METERS = 25
     }
+}
+
+private fun remainingRouteFrom(location: GeoLocation, route: RouteResult): RouteResult {
+    val geometry = route.geometry
+    if (geometry.size < 2) return route.copy(geometry = emptyList())
+    var bestIndex = 0
+    var bestT = 0.0
+    var bestDistance = Double.MAX_VALUE
+    for (index in 0 until geometry.lastIndex) {
+        val hit = hitOnSegment(location, geometry[index], geometry[index + 1])
+        if (hit.distance < bestDistance) {
+            bestDistance = hit.distance
+            bestIndex = index
+            bestT = hit.t
+        }
+    }
+    val cut = interpolate(geometry[bestIndex], geometry[bestIndex + 1], bestT)
+    val remaining = ArrayList<GeoLocation>(geometry.size - bestIndex)
+    remaining += cut
+    for (index in bestIndex + 1 until geometry.size) {
+        remaining += geometry[index]
+    }
+    if (remaining.size < 2) return route.copy(geometry = emptyList())
+    return route.copy(geometry = remaining)
 }
 
 fun distanceMetersToRoute(location: GeoLocation, geometry: List<GeoLocation>): Int {
@@ -275,12 +358,14 @@ fun distanceMetersToRoute(location: GeoLocation, geometry: List<GeoLocation>): I
     }
     var min = Double.MAX_VALUE
     for (index in 0 until geometry.lastIndex) {
-        min = minOf(min, distancePointToSegment(location, geometry[index], geometry[index + 1]))
+        min = minOf(min, hitOnSegment(location, geometry[index], geometry[index + 1]).distance)
     }
     return min.toInt()
 }
 
-private fun distancePointToSegment(point: GeoLocation, start: GeoLocation, end: GeoLocation): Double {
+private data class SegmentHit(val distance: Double, val t: Double)
+
+private fun hitOnSegment(point: GeoLocation, start: GeoLocation, end: GeoLocation): SegmentHit {
     val metersPerLat = 110_540.0
     val metersPerLon = 111_320.0 * cos(Math.toRadians(start.lat))
     val bx = (end.lon - start.lon) * metersPerLon
@@ -291,5 +376,11 @@ private fun distancePointToSegment(point: GeoLocation, start: GeoLocation, end: 
     val t = if (length2 == 0.0) 0.0 else ((px * bx + py * by) / length2).coerceIn(0.0, 1.0)
     val dx = px - t * bx
     val dy = py - t * by
-    return sqrt(dx * dx + dy * dy)
+    return SegmentHit(distance = sqrt(dx * dx + dy * dy), t = t)
 }
+
+private fun interpolate(start: GeoLocation, end: GeoLocation, t: Double): GeoLocation =
+    GeoLocation(
+        lat = start.lat + (end.lat - start.lat) * t,
+        lon = start.lon + (end.lon - start.lon) * t,
+    )

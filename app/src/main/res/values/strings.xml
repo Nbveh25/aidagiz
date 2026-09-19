@@ -87,6 +87,8 @@
     <string name="guide_mute">Выключить звук</string>
     <string name="guide_navigation">Навигация</string>
     <string name="guide_speaking">Сейчас рассказывает AI-гид</string>
+    <string name="guide_preparing">Готовим озвучку…</string>
+    <string name="guide_audio_error">Не удалось озвучить описание</string>
     <string name="guide_show_text">Показать весь текст</string>
     <string name="guide_hide_text">Свернуть текст</string>
     <string name="guide_continue">Дальше к маршруту</string>
@@ -139,6 +141,9 @@
     <string name="nav_along"> по %s</string>
     <string name="nav_depart">Начните движение%s</string>
     <string name="nav_arrive">Вы на месте</string>
+    <string name="nav_you_are_here_title">Вы на месте!</string>
+    <string name="nav_you_are_here_body">Маршрут завершён. Можно осмотреться и закончить прогулку.</string>
+    <string name="nav_you_are_here_done">Готово</string>
     <string name="nav_continue">Продолжайте%s</string>
     <string name="nav_fork">На развилке держитесь %s</string>
     <string name="nav_fork_default">основного направления</string>

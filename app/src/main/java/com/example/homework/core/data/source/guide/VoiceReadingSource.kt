@@ -8,20 +8,17 @@ import org.json.JSONObject
 class VoiceReadingSource(
     private val api: GuideApiClient,
 ) {
-    suspend fun synthesize(text: String, language: String = "ru"): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun synthesize(text: String): ByteArray = withContext(Dispatchers.IO) {
         val clipped = text.trim().take(MAX_TEXT_LENGTH)
         require(clipped.isNotBlank()) { "Текст для озвучивания пуст" }
         api.postBytes(
-            path = "/voice-reading",
-            body = JSONObject()
-                .put("text", clipped)
-                .put("language", language)
-                .put("voice", language),
+            path = "/speech/synthesize",
+            body = JSONObject().put("text", clipped),
             accept = "audio/wav",
         )
     }
 
     private companion object {
-        const val MAX_TEXT_LENGTH = 5000
+        const val MAX_TEXT_LENGTH = 1000
     }
 }

@@ -1,162 +1,101 @@
-# Культурный маршрут: `POST /route-adventure`
+# Озвучка описания точки: `POST /speech/synthesize`
 
-Контракт TatarTouristGuideService. Бэкенд сам подбирает места из DataSet, строит пешее расписание по Казани и учитывает оценки анонимного пользователя. Это не OSRM-конструктор: клиент передаёт параметры прогулки, сервер возвращает готовый упорядоченный список точек.
+AI-гид на карте озвучивает **описание места** (`OsmPlace.description`). Кнопка **«Слушать AI-гид»** открывает `AudioGuideContent` и отправляет этот текст в TTS бэкенда. Это не отдельный рассказ и не story API.
 
-База: `http://192.168.3.11:5137`  
-Swagger: `http://192.168.3.11:5137/swagger/index.html`
+База: значение `GuideApiConfig.BASE_URL` (сейчас `http://192.168.0.101:5137`)  
+Swagger: `{BASE_URL}/swagger/index.html`
 
 ```text
-POST /users/anonymous  ->  userId
-GPS / выбранные точки  ->  RouteAdventureRequest
-POST /route-adventure  ->  RouteAdventureResponse
-карта / прогресс тура  <-  places[] + длительности
+точка на карте           ->  OsmPlace.description
+кнопка «Слушать AI-гид»  ->  LiveMapViewModel.openGuide()
+POST /speech/synthesize  ->  WAV (audio/wav)
+MediaPlayer              ->  экран AudioGuideContent
 ```
 
-## Заголовок
+## Что отправлять
 
-| Заголовок | Обязателен | Описание |
-| --- | --- | --- |
-| `X-User-Id` | да | UUID анонимного пользователя из `POST /users/anonymous`. По нему бэкенд подтягивает оценки. |
-| `Content-Type` | да | `application/json` |
-| `Accept` | да | `application/json` |
+Только поле `description` выбранной точки. Источники описания:
 
-Без существующего `X-User-Id` запрос не считается валидным.
+| Откуда точка | Откуда берётся `description` |
+| --- | --- |
+| Маршрут / DataSet / `POST /route-adventure` | Поле `description` в ответе, мапится в `OsmPlace.description` |
+| Историческое место | После `GET /historical-places/{placeId}` story кладётся в `OsmPlace.description` |
+| Демо-точки / точки у коридора маршрута | Уже заполненный `description`, иначе короткий mock (`withMockSightDescription`) |
 
-## Запрос `RouteAdventureRequest`
+На экране гида показывается тот же текст: `guideNarration.text` == `place.description`.
 
-`POST /route-adventure`
+## Чего не использовать
+
+- **`GET /places/{placeId}/story`** — не вызывать и не подключать к гиду, карточке и озвучке.
+- **`POST /voice-reading`** — старый TTS, заменён на `/speech/synthesize`.
+- Не выдумывать текст гида на клиенте, если `description` пустой: синтез должен упасть с понятной ошибкой.
+
+## Запрос `SpeechSynthesisRequest`
+
+`POST /speech/synthesize`
+
+`additionalProperties` запрещены. Язык, голос и прочие поля не отправлять.
 
 | Поле | Тип | Обязательно | Описание |
 | --- | --- | --- | --- |
-| `durationMinutes` | int | да | Желаемая длительность прогулки, 30–720 минут. |
-| `interests` | string[] | да | Культурные интересы, например `история`, `татарская культура`, `архитектура`, `музеи`, `мечети`, `парки`. |
-| `pace` | string | да | Темп: `быстрый`, `обычный`, `неспешный`. |
-| `userLocation` | `{ lat, lon }` | да | Текущая точка пользователя. Широта и долгота в десятичных градусах. |
-| `requiredPlaces` | `{ lat, lon }[]` | нет | Обязательные точки DataSet по координатам. |
-| `visitedPlaces` | string | нет | Имена уже посещённых мест через запятую. |
-| `aiRequest` | string | нет | Свободное пожелание по культурному туризму. |
-| `startAt` | string | нет | Старт ISO 8601 со смещением, например `2026-09-12T10:00:00+03:00`. Без поля бэкенд берёт текущее время. |
-| `optimizeVisitOrder` | bool | нет | Оптимизировать порядок посещения моделью. |
+| `text` | string | да | Первые 1000 символов `description`. Пустая строка недопустима. |
 
-`additionalProperties` запрещены.
+Заголовки:
+
+| Заголовок | Обязателен | Описание |
+| --- | --- | --- |
+| `Content-Type` | да | `application/json` |
+| `Accept` | да | `audio/wav` |
+
+`X-User-Id` для этого эндпоинта не нужен.
 
 ### Пример запроса
 
 ```json
 {
-  "durationMinutes": 240,
-  "interests": ["история", "татарская культура"],
-  "pace": "обычный",
-  "requiredPlaces": [{ "lat": 55.798551, "lon": 49.106324 }],
-  "visitedPlaces": "Казанский Кремль",
-  "aiRequest": "История Казани",
-  "userLocation": { "lat": 55.796127, "lon": 49.106405 },
-  "startAt": "2026-09-12T10:00:00+03:00",
-  "optimizeVisitOrder": true
+  "text": "Сәлам, Казан. Мин сезнең шәһәрдә иң мәдәни урыннарны карарга телим."
 }
 ```
 
-## Ответ `RouteAdventureResponse`
+## Ответ
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `startedAt` | date-time | Начало маршрута, часовой пояс Казани. |
-| `finishedAt` | date-time | Время завершения. |
-| `totalDurationMinutes` | int | Дорога + осмотр + ожидание. |
-| `totalTravelDurationMinutes` | int | Суммарное проверенное время в пути. |
-| `totalVisitDurationMinutes` | int | Суммарное проверенное время осмотра. |
-| `places` | `RouteAdventurePlaceResponse[]` | Точки в фактическом порядке посещения. |
-
-Каждая точка:
-
-| Поле | Описание |
+| HTTP | Тело |
 | --- | --- |
-| `order` | Порядок с единицы. |
-| `id` | Идентификатор места из DataSet. |
-| `name`, `address`, `description` | Данные из БД. |
-| `lat`, `lon` | Координаты. |
-| `type` | Категория (`музей`, `tatar_food`, `walks_parks` и т.д.). |
-| `categoryIconUrl`, `imageUrl` | URL иконки и фото; могут быть `null`. `localhost` в URL нужно заменить на хост бэкенда. |
-| `arrivalAt`, `departureAt` | Проверенное расписание. |
-| `travelDurationMinutes` | Время пути от предыдущей точки. |
-| `visitDurationMinutes` | Время осмотра. |
+| 200 | Бинарный WAV (`audio/wav`). PCM, mono. Swagger UI предлагает сохранить файл. |
+| 400, 429, 502, 504 | JSON `{ "message": "..." }` — публичный текст без внутренних деталей. |
 
-### Пример ответа
+Клиент читает успешный ответ как `ByteArray` (`GuideApiClient.postBytes`) и отдаёт в `MediaPlayer`.
 
-```json
-{
-  "startedAt": "2026-09-12T10:00:00+03:00",
-  "finishedAt": "2026-09-12T11:04:00+03:00",
-  "totalDurationMinutes": 64,
-  "totalTravelDurationMinutes": 4,
-  "totalVisitDurationMinutes": 60,
-  "places": [
-    {
-      "order": 1,
-      "id": "place-001",
-      "name": "Казанский Кремль",
-      "address": "Казань, Кремлёвская улица",
-      "description": "Исторический комплекс.",
-      "lat": 55.798551,
-      "lon": 49.106324,
-      "type": "история",
-      "categoryIconUrl": null,
-      "imageUrl": "https://s3go.kzn.ru/....jpg",
-      "arrivalAt": "2026-09-12T10:04:00+03:00",
-      "departureAt": "2026-09-12T11:04:00+03:00",
-      "travelDurationMinutes": 4,
-      "visitDurationMinutes": 60
-    }
-  ]
-}
-```
+## Поток в приложении
 
-## Ошибки
+1. Пользователь открывает карточку места → выбирает **«Слушать AI-гид»**.
+2. `PlaceDetailsBottomSheet` вызывает `LiveMapViewModel.openGuide()`.
+3. Открывается `AudioGuideContent`, `isPreparingGuideAudio = true` (спиннер на play, строка «Готовим озвучку…»).
+4. `GetAiGuideUseCase.prepareAudio(place)` → `AiGuideRepositoryImpl`:
+   - текст = `place.description.trim()`;
+   - если тот же `placeId` + тот же текст уже в плеере — повторный запрос не шлётся;
+   - иначе `VoiceReadingSource.synthesize(text)` → `POST /speech/synthesize`.
+5. WAV пишется в cache (`speech-synthesize.wav`), `AiGuideSource` готовит `MediaPlayer` и запускает воспроизведение.
+6. Ошибка синтеза попадает в `LiveMapUiState.errorMessage` (`guide_audio_error` или `message` с бэкенда).
 
-Тело: `{ "message": "..." }` — публичный текст без внутренних деталей.
+Тот же `playPlaceNarration` используется при переходе к следующей точке гида и при включённом AI-гиде в навигации.
 
-| HTTP | Когда |
+## Клиент в коде
+
+| Слой | Класс |
 | --- | --- |
-| 400 | Невалидный запрос. |
-| 404 | Пользователь или связанные данные не найдены. |
-| 502 | Upstream бэкенда недоступен. |
-| 500 | Внутренняя ошибка сервиса. |
+| UI | `AudioGuideContent`, `PlaceDetailsBottomSheet` (кнопка `place_listen_guide`) |
+| VM | `LiveMapViewModel.openGuide()` / `playPlaceNarration()` |
+| Use case | `GetAiGuideUseCase.prepareAudio` |
+| Domain text | `AiGuideSource.getNarration` ← только `OsmPlace.description` |
+| HTTP | `VoiceReadingSource` → `GuideApiClient.postBytes("/speech/synthesize")` |
+| Плеер | `AiGuideSource.prepareAudio(bytes)` |
 
-## Перестроение: `POST /route-adventure/rebuild`
+Таймаут HTTP-клиента гида: connect 10s, read/call 180s (`KoinModules`). Синтез длинного описания может занять десятки секунд.
 
-Нужен тот же `X-User-Id`. Сервер сопоставляет посещённые и оставшиеся координаты с Places, исключает посещённое и возвращает тот же `RouteAdventureResponse`. Пустой выполнимый результат — маршрут с нулевыми итогами.
+## Ограничения
 
-`RouteRebuildRequest`:
-
-| Поле | Обязательно | Описание |
-| --- | --- | --- |
-| `visitedPlaces` | да | Массив `{ lat, lon }`, может быть пустым. |
-| `remainingPlaces` | да | Непосещённая часть исходного маршрута. |
-| `userLocation` | да | Текущая позиция. |
-| `aiRequest` | да | Пожелание, 1–1000 символов. |
-| `currentAt` | нет | ISO 8601 со смещением. Без поля — текущее время `Europe/Moscow`. |
-
-Пример:
-
-```json
-{
-  "visitedPlaces": [{ "lat": 55.798551, "lon": 49.106324 }],
-  "remainingPlaces": [{ "lat": 55.796289, "lon": 49.108795 }],
-  "userLocation": { "lat": 55.795122, "lon": 49.110442 },
-  "currentAt": "2026-09-13T15:30:00+03:00",
-  "aiRequest": "Я устал, осталось 30 минут"
-}
-```
-
-Дополнительно возможны 504 при таймауте.
-
-## Клиент в приложении
-
-- HTTP: `GuideApiClient.postJson`, база `GuideApiConfig.BASE_URL`.
-- Вызов: `RouteApiSource.buildRoute` / `rebuildRoute` → `RouteRepository` → `BuildAdventureRouteUseCase` / `ContinueRouteUseCase`.
-- Перед запросом `AnonymousUserSource.ensureUserId()` кладёт UUID в `X-User-Id`.
-- Координаты приводятся к Казани (`clampToKazan`).
-- Сейчас клиент по умолчанию шлёт `durationMinutes=240`, `pace=обычный`, интересы история/культура/архитектура/музеи/мечети/парки, `optimizeVisitOrder=true`.
-- Ответ мапится в `AdventureRoute`; точка — в `OsmPlace` (`id`, `name`, `lat`, `lon`, `type` → категория, `description`, `address`, `imageUrl`, `categoryIconUrl`). Поля расписания `order` / `arrivalAt` / `departureAt` / `travelDurationMinutes` / `visitDurationMinutes` в сущность пока не переносятся.
-- `localhost:9000` в медиа-URL переписывается на `192.168.3.11:9000`.
-- Кнопка «Построить» на карте вызывает OSRM по выбранным точкам, а не этот эндпоинт. `POST /route-adventure` остаётся в data-слое для автосборки культурного маршрута.
+- На синтез уходят только первые **1000** символов `description` (`VoiceReadingSource.MAX_TEXT_LENGTH`). Полный текст на экране гида не обрезается.
+- Кнопка play во время синтеза заблокирована.
+- Без готового WAV `togglePlayback()` ничего не делает (нет «фейкового» прогресса).
+- Повторное открытие той же точки с тем же описанием переиспользует уже синтезированный файл.

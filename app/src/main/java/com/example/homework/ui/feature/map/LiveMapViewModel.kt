@@ -51,6 +51,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,6 +94,7 @@ class LiveMapViewModel(
     private var adventureJob: Job? = null
     private var corridorImageJob: Job? = null
     private var navigationGuideJob: Job? = null
+    private var guideAudioJob: Job? = null
     private var didCenterOnUser = false
     private var didReloadAroundUser = false
 
@@ -337,7 +339,7 @@ class LiveMapViewModel(
         if (_state.value.routePlaces.isEmpty()) return
         val effect = navigator.start(_state.value.routePlaces, _state.value.user)
         publishNavigation()
-        _state.update { it.copy(routePanelExpanded = false, selectedPlaceId = null, isGuideOpen = false) }
+        _state.update { it.copy(routePanelExpanded = false, selectedPlaceId = null, isGuideOpen = false, showArrivalDialog = false) }
         if (effect.rebuildRoute) requestOsrmRoute(fromNavigation = true)
         if (_state.value.isAiGuideEnabled) startNavigationGuide()
     }
@@ -371,6 +373,12 @@ class LiveMapViewModel(
         navigator.stop()
         publishNavigation()
         stopNavigationGuide()
+        _state.update { it.copy(showArrivalDialog = false) }
+    }
+
+    fun dismissArrivalDialog() {
+        _state.update { it.copy(showArrivalDialog = false) }
+        stopNavigation()
     }
 
     fun toggleAiGuide() {
@@ -386,12 +394,7 @@ class LiveMapViewModel(
     fun openGuide() {
         val place = _state.value.selectedPlace ?: return
         _state.update { it.copy(isGuideOpen = true) }
-        viewModelScope.launch {
-            runCatching { getAiGuide.prepareAudio(place) }
-            if (!_state.value.guidePlayback.isPlaying) {
-                controlAiGuide.togglePlayback()
-            }
-        }
+        playPlaceNarration(place, autoplay = true)
     }
 
     fun closeGuide() {
@@ -565,24 +568,21 @@ class LiveMapViewModel(
         openPlace(nextId, openGuide = keepGuide)
         if (keepGuide) {
             _state.value.selectedPlace?.let { place ->
-                viewModelScope.launch {
-                    runCatching { getAiGuide.prepareAudio(place) }
-                    if (!_state.value.guidePlayback.isPlaying) {
-                        controlAiGuide.togglePlayback()
-                    }
-                }
+                playPlaceNarration(place, autoplay = true)
             }
         }
     }
 
     private fun openPlace(placeId: String?, openGuide: Boolean) {
         if (placeId == null) {
+            guideAudioJob?.cancel()
             _state.update {
                 it.copy(
                     selectedPlaceId = null,
                     placeDetails = null,
                     guideNarration = null,
                     isGuideOpen = false,
+                    isPreparingGuideAudio = false,
                     isLoadingHistoricalDetails = false,
                 )
             }
@@ -600,6 +600,9 @@ class LiveMapViewModel(
             historicalDetails == null &&
             WIKIDATA_ID.matches(place.id)
         getTourProgress.selectStop(placeId)
+        if (_state.value.selectedPlaceId != placeId) {
+            guideAudioJob?.cancel()
+        }
         controlAiGuide.resetForPlace()
         _state.update {
             it.copy(
@@ -607,6 +610,7 @@ class LiveMapViewModel(
                 placeDetails = if (loadingHistorical) null else placeDetailsFor(displayPlace, historicalDetails),
                 guideNarration = if (loadingHistorical) null else getAiGuide(displayPlace),
                 isGuideOpen = openGuide,
+                isPreparingGuideAudio = false,
                 isLoadingHistoricalDetails = loadingHistorical,
             )
         }
@@ -627,17 +631,6 @@ class LiveMapViewModel(
                 }
             }
             return
-        }
-        if (place.id.startsWith("demo-")) return
-        viewModelScope.launch {
-            getPlaceDetails.loadStory(place.id)
-            if (_state.value.selectedPlaceId != place.id) return@launch
-            _state.update {
-                it.copy(
-                    placeDetails = getPlaceDetails(place),
-                    guideNarration = getAiGuide(place),
-                )
-            }
         }
     }
 
@@ -663,6 +656,9 @@ class LiveMapViewModel(
                     val effect = navigator.onLocation(location, System.currentTimeMillis())
                     publishNavigation()
                     if (effect.rebuildRoute) requestOsrmRoute(fromNavigation = true)
+                    if (effect.arrivedAtLastStop) {
+                        _state.update { it.copy(showArrivalDialog = true) }
+                    }
                     if (
                         _state.value.isAiGuideEnabled &&
                         previousStatus != NavigationStatus.Arrived &&
@@ -858,6 +854,7 @@ class LiveMapViewModel(
             placeDetails = if (loadingHistorical) null else selectedPlace?.let { placeDetailsFor(it, historical) },
             guideNarration = if (loadingHistorical) null else selectedPlace?.let(getAiGuide::invoke),
             isGuideOpen = if (selectedStillVisible) isGuideOpen else false,
+            isPreparingGuideAudio = if (selectedStillVisible) isPreparingGuideAudio else false,
             isLoadingHistoricalDetails = loadingHistorical,
         )
     }
@@ -926,22 +923,53 @@ class LiveMapViewModel(
 
     private fun startNavigationGuide() {
         val place = currentNavigationPlace() ?: return
-        navigationGuideJob?.cancel()
-        navigationGuideJob = viewModelScope.launch {
-            controlAiGuide.resetForPlace()
-            _state.update { it.copy(guideNarration = getAiGuide(place)) }
-            runCatching { getAiGuide.prepareAudio(place) }
-            if (!_state.value.isAiGuideEnabled) return@launch
-            if (!_state.value.guidePlayback.isPlaying) {
-                controlAiGuide.togglePlayback()
-            }
-        }
+        controlAiGuide.resetForPlace()
+        _state.update { it.copy(guideNarration = getAiGuide(place)) }
+        playPlaceNarration(place, autoplay = true) { _state.value.isAiGuideEnabled }
     }
 
     private fun stopNavigationGuide() {
+        guideAudioJob?.cancel()
         navigationGuideJob?.cancel()
+        _state.update { it.copy(isPreparingGuideAudio = false) }
         if (_state.value.guidePlayback.isPlaying) {
             controlAiGuide.togglePlayback()
+        }
+    }
+
+    private fun playPlaceNarration(
+        place: OsmPlace,
+        autoplay: Boolean,
+        stillEnabled: () -> Boolean = { true },
+    ) {
+        guideAudioJob?.cancel()
+        guideAudioJob = viewModelScope.launch {
+            _state.update { it.copy(isPreparingGuideAudio = true) }
+            val result = runCatching { getAiGuide.prepareAudio(place) }
+                .onFailure { error -> if (error is CancellationException) throw error }
+            if (!isActive) return@launch
+            val samePlace = _state.value.selectedPlaceId == place.id ||
+                currentNavigationPlace()?.id == place.id
+            if (!samePlace) {
+                _state.update { it.copy(isPreparingGuideAudio = false) }
+                return@launch
+            }
+            val enabled = stillEnabled()
+            _state.update {
+                it.copy(
+                    isPreparingGuideAudio = false,
+                    guideNarration = getAiGuide(place),
+                    errorMessage = if (result.isFailure) {
+                        result.exceptionOrNull()?.message ?: strings.get(R.string.guide_audio_error)
+                    } else {
+                        it.errorMessage
+                    },
+                )
+            }
+            if (result.isFailure || !enabled) return@launch
+            if (autoplay && !_state.value.guidePlayback.isPlaying) {
+                controlAiGuide.togglePlayback()
+            }
         }
     }
 

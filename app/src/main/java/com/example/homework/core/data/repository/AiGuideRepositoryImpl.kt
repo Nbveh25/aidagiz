@@ -1,9 +1,7 @@
 package com.example.homework.core.data.repository
 
 import com.example.homework.core.data.source.guide.AiGuideSource
-import com.example.homework.core.data.source.place.PlaceStorySource
 import com.example.homework.core.domain.repository.AiGuideRepository
-import com.example.homework.core.domain.repository.HistoricalPlacesRepository
 import com.example.homework.core.domain.repository.VoiceReadingRepository
 import com.example.homework.entity.guide.AiGuideNarration
 import com.example.homework.entity.guide.AiGuidePlayback
@@ -13,19 +11,27 @@ import kotlinx.coroutines.flow.Flow
 class AiGuideRepositoryImpl(
     private val aiGuideSource: AiGuideSource,
     private val voiceReadingRepository: VoiceReadingRepository,
-    private val placeStorySource: PlaceStorySource,
-    private val historicalPlacesRepository: HistoricalPlacesRepository,
 ) : AiGuideRepository {
+    private var preparedPlaceId: String? = null
+    private var preparedText: String? = null
+
     override fun getNarration(place: OsmPlace): AiGuideNarration =
-        aiGuideSource.getNarration(place, cachedStory(place))
+        aiGuideSource.getNarration(place)
 
     override suspend fun prepareAudio(place: OsmPlace) {
-        val story = loadStory(place)
-        val narration = aiGuideSource.getNarration(place, story)
-        runCatching {
-            val wav = voiceReadingRepository.synthesize(narration.text)
-            aiGuideSource.prepareAudio(wav)
+        val narration = aiGuideSource.getNarration(place)
+        if (
+            preparedPlaceId == place.id &&
+            preparedText == narration.text &&
+            aiGuideSource.hasPreparedAudio()
+        ) {
+            aiGuideSource.resetForPlace()
+            return
         }
+        val wav = voiceReadingRepository.synthesize(narration.text)
+        aiGuideSource.prepareAudio(wav)
+        preparedPlaceId = place.id
+        preparedText = narration.text
     }
 
     override fun observePlayback(): Flow<AiGuidePlayback> =
@@ -40,23 +46,4 @@ class AiGuideRepositoryImpl(
     override fun resetForPlace() = aiGuideSource.resetForPlace()
 
     override fun tick() = aiGuideSource.tick()
-
-    private fun cachedStory(place: OsmPlace): String? {
-        val story = if (place.isHistorical) {
-            historicalPlacesRepository.cachedPlaceDetails(place.id)?.story
-        } else {
-            placeStorySource.cached(place.id)?.story
-        }
-        return story?.takeIf { it.isNotBlank() }
-    }
-
-    private suspend fun loadStory(place: OsmPlace): String? {
-        cachedStory(place)?.let { return it }
-        val story = if (place.isHistorical) {
-            runCatching { historicalPlacesRepository.getPlaceDetails(place.id).story }.getOrNull()
-        } else {
-            runCatching { placeStorySource.getStory(place.id) }.getOrNull()?.story
-        }
-        return story?.takeIf { it.isNotBlank() }
-    }
 }

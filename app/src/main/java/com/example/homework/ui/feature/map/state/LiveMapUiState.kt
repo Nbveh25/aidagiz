@@ -30,6 +30,7 @@ data class LiveMapUiState(
     val guidePlayback: AiGuidePlayback = AiGuidePlayback(),
     val tourProgress: TourProgress = TourProgress(),
     val isGuideOpen: Boolean = false,
+    val isPreparingGuideAudio: Boolean = false,
     val isAiGuideEnabled: Boolean = false,
     val isLoadingPlaces: Boolean = false,
     val errorMessage: String? = null,
@@ -53,6 +54,7 @@ data class LiveMapUiState(
     val rebuildPrompt: String = "",
     val historicalYearRange: YearRange = YearRange.Default,
     val isLoadingHistoricalDetails: Boolean = false,
+    val showArrivalDialog: Boolean = false,
 ) {
     val selectedPlace: OsmPlace?
         get() = places.firstOrNull { it.id == selectedPlaceId }

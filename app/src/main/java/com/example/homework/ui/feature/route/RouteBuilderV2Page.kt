@@ -46,6 +46,7 @@ import com.example.homework.core.locale.AppLanguage
 import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.WalkPace
 import com.example.homework.ui.feature.map.AiGuideFab
+import com.example.homework.ui.feature.map.ArrivalHereDialog
 import com.example.homework.ui.feature.map.LiveMapViewModel
 import com.example.homework.ui.feature.map.NavigationHud
 import com.example.homework.ui.feature.map.OsmMap
@@ -123,6 +124,7 @@ fun RouteBuilderV2Page(
                 onRetryNavigation = viewModel::retryNavigation,
                 onNextNavigationPlace = viewModel::nextNavigationPlace,
                 onStopNavigation = viewModel::stopNavigation,
+                onDismissArrivalDialog = viewModel::dismissArrivalDialog,
                 onToggleAiGuide = viewModel::toggleAiGuide,
                 onDismissPlace = { viewModel.selectPlace(null) },
                 onToggleSelectedInRoute = viewModel::toggleSelectedInRoute,
@@ -254,6 +256,7 @@ private fun RoutePlannerContent(
     onRetryNavigation: () -> Unit,
     onNextNavigationPlace: () -> Unit,
     onStopNavigation: () -> Unit,
+    onDismissArrivalDialog: () -> Unit,
     onToggleAiGuide: () -> Unit,
     onDismissPlace: () -> Unit,
     onToggleSelectedInRoute: () -> Unit,
@@ -364,6 +367,7 @@ private fun RoutePlannerContent(
                         isGuideOpen = state.isGuideOpen,
                         inRoute = state.selectedInRoute,
                         isLoadingDetails = state.isLoadingHistoricalDetails,
+                        isPreparingAudio = state.isPreparingGuideAudio,
                         onDismiss = onDismissPlace,
                         onToggleRoute = onToggleSelectedInRoute,
                         onOpenGuide = onOpenGuide,
@@ -379,5 +383,11 @@ private fun RoutePlannerContent(
                     )
                 }
             }
+        if (state.showArrivalDialog) {
+            ArrivalHereDialog(
+                placeName = state.routePlaces.lastOrNull()?.name,
+                onDismiss = onDismissArrivalDialog,
+            )
+        }
     }
 }

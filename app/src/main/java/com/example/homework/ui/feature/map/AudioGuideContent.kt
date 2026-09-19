@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,6 +85,7 @@ fun AudioGuideContent(
     narration: AiGuideNarration?,
     playback: AiGuidePlayback,
     tourProgress: TourProgress,
+    isPreparingAudio: Boolean = false,
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onClose: () -> Unit,
@@ -98,18 +100,6 @@ fun AudioGuideContent(
     var showFullText by remember(place.id) { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        /*MapRoundIconButton(
-            icon = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = stringResource(R.string.guide_back),
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .statusBarsPadding()
-                .padding(
-                    start = 16.dp,
-                    top = 12.dp,
-                ),
-        )*/
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -201,7 +191,9 @@ fun AudioGuideContent(
                     }
                     Spacer(Modifier.height(18.dp))
                     Text(
-                        text = stringResource(R.string.guide_speaking),
+                        text = stringResource(
+                            if (isPreparingAudio) R.string.guide_preparing else R.string.guide_speaking,
+                        ),
                         color = TextPrimary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -209,20 +201,12 @@ fun AudioGuideContent(
                     Spacer(Modifier.height(12.dp))
                     AudioPlayerRow(
                         isPlaying = playback.isPlaying,
+                        isPreparing = isPreparingAudio,
                         onTogglePlayback = onTogglePlayback,
                         onPrevious = onPreviousStop,
                         onNext = onNextStop,
                     )
                     Spacer(Modifier.height(8.dp))
-                    Slider(
-                        value = playback.progress,
-                        onValueChange = onSeek,
-                        colors = SliderDefaults.colors(
-                            thumbColor = ForestGreenDeep,
-                            activeTrackColor = ForestGreenDeep,
-                            inactiveTrackColor = ProgressTrack,
-                        ),
-                    )
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = playback.positionLabel,
@@ -322,16 +306,7 @@ private fun GuideProgressRow(
             fontWeight = FontWeight.Medium,
         )
         Spacer(Modifier.width(10.dp))
-        LinearProgressIndicator(
-            progress = { if (total == 0) 0f else current / total.toFloat() },
-            color = ForestGreenDeep,
-            trackColor = ProgressTrack,
-            modifier = Modifier
-                .weight(1f)
-                .height(6.dp)
-                .clip(RoundedCornerShape(50)),
-        )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.weight(1f))
         IconButton(
             modifier = Modifier.size(36.dp),
             onClick = onClose,
@@ -365,6 +340,7 @@ private fun GuideChip(label: String) {
 @Composable
 private fun AudioPlayerRow(
     isPlaying: Boolean,
+    isPreparing: Boolean,
     onTogglePlayback: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -374,14 +350,6 @@ private fun AudioPlayerRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = onPrevious) {
-            Icon(
-                imageVector = Icons.Filled.SkipPrevious,
-                contentDescription = stringResource(R.string.guide_previous),
-                tint = IconDark,
-                modifier = Modifier.size(28.dp),
-            )
-        }
         SoundWaveStub(
             modifier = Modifier
                 .weight(1f)
@@ -395,19 +363,27 @@ private fun AudioPlayerRow(
                 .shadow(6.dp, CircleShape)
                 .clip(CircleShape)
                 .background(ForestGreenDeep)
-                .clickable(onClick = onTogglePlayback),
+                .clickable(enabled = !isPreparing, onClick = onTogglePlayback),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) {
-                    stringResource(R.string.guide_pause)
-                } else {
-                    stringResource(R.string.guide_play)
-                },
-                tint = TextOnForest,
-                modifier = Modifier.size(28.dp),
-            )
+            if (isPreparing) {
+                CircularProgressIndicator(
+                    color = TextOnForest,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(26.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (isPlaying) {
+                        stringResource(R.string.guide_pause)
+                    } else {
+                        stringResource(R.string.guide_play)
+                    },
+                    tint = TextOnForest,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
         SoundWaveStub(
             modifier = Modifier
@@ -416,14 +392,6 @@ private fun AudioPlayerRow(
                 .padding(horizontal = 8.dp),
             played = false,
         )
-        IconButton(onClick = onNext) {
-            Icon(
-                imageVector = Icons.Filled.SkipNext,
-                contentDescription = stringResource(R.string.guide_next),
-                tint = IconDark,
-                modifier = Modifier.size(28.dp),
-            )
-        }
     }
 }
 

@@ -126,6 +126,7 @@ fun LiveMapScreen(
         onRetryNavigation = viewModel::retryNavigation,
         onNextNavigationPlace = viewModel::nextNavigationPlace,
         onStopNavigation = viewModel::stopNavigation,
+        onDismissArrivalDialog = viewModel::dismissArrivalDialog,
         onToggleAiGuide = viewModel::toggleAiGuide,
         onToggleRoutePanel = viewModel::toggleRoutePanel,
         onRemoveFromRoute = viewModel::removeFromRoute,
@@ -180,6 +181,7 @@ fun LiveMapContent(
     onRetryNavigation: () -> Unit = {},
     onNextNavigationPlace: () -> Unit = {},
     onStopNavigation: () -> Unit = {},
+    onDismissArrivalDialog: () -> Unit = {},
     onToggleAiGuide: () -> Unit = {},
     onToggleRoutePanel: () -> Unit = {},
     onRemoveFromRoute: (String) -> Unit = {},
@@ -342,6 +344,7 @@ fun LiveMapContent(
                     isGuideOpen = state.isGuideOpen,
                     inRoute = state.selectedInRoute,
                     isLoadingDetails = state.isLoadingHistoricalDetails,
+                    isPreparingAudio = state.isPreparingGuideAudio,
                     onDismiss = onDismissPlace,
                     onToggleRoute = onToggleSelectedInRoute,
                     onOpenGuide = onOpenGuide,
@@ -356,6 +359,12 @@ fun LiveMapContent(
                     onRecenter = onRecenter,
                 )
             }
+        }
+        if (state.showArrivalDialog) {
+            ArrivalHereDialog(
+                placeName = state.routePlaces.lastOrNull()?.name,
+                onDismiss = onDismissArrivalDialog,
+            )
         }
     }
 }

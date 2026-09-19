@@ -85,6 +85,8 @@
     <string name="guide_mute">Тавышны сүндерү</string>
     <string name="guide_navigation">Навигация</string>
     <string name="guide_speaking">Хәзер AI-гид сөйли</string>
+    <string name="guide_preparing">Тавыш әзерләнә…</string>
+    <string name="guide_audio_error">Тасвирламаны тыңлатып булмады</string>
     <string name="guide_show_text">Барлык текстны күрсәтү</string>
     <string name="guide_hide_text">Текстны җыю</string>
     <string name="guide_continue">Маршрут буенча алга</string>
@@ -137,6 +139,9 @@
     <string name="nav_along"> %s буенча</string>
     <string name="nav_depart">Хәрәкәтне башлагыз%s</string>
     <string name="nav_arrive">Сез урында</string>
+    <string name="nav_you_are_here_title">Сез урында!</string>
+    <string name="nav_you_are_here_body">Маршрут тәмам. Тирә-юньне карап, сәяхәтне тәмамлый аласыз.</string>
+    <string name="nav_you_are_here_done">Әйбәт</string>
     <string name="nav_continue">Дәвам итегез%s</string>
     <string name="nav_fork">Аерылышта %s тотыгыз</string>
     <string name="nav_fork_default">төп юнәлешне</string>

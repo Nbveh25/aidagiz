@@ -9,6 +9,7 @@ data class AiGuideNarration(
 data class AiGuidePlayback(
     val isPlaying: Boolean = false,
     val isMuted: Boolean = false,
+    val isReady: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 1L,
 ) {
