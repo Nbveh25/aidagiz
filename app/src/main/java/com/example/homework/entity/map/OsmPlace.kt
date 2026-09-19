@@ -18,6 +18,11 @@ data class OsmPlace(
     val visitDurationMinutes: Int? = null,
     val isHistorical: Boolean = false,
 ) {
+    val isHistoricOrAttraction: Boolean
+        get() = isHistorical ||
+            category == PlaceCategory.Historic ||
+            category == PlaceCategory.Attraction
+
     fun distanceMetersTo(location: GeoLocation): Int =
         distanceMeters(lat, lon, location.lat, location.lon)
 }

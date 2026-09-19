@@ -436,7 +436,6 @@ class LiveMapViewModel(
         getTourProgress.bindStops(places.map { it.place })
         _state.update {
             it.copy(
-                places = places.map { stop -> stop.place },
                 routePlaces = places,
                 adventure = route,
                 routeStatus = RouteStatus.Success,
@@ -448,6 +447,9 @@ class LiveMapViewModel(
             )
         }
         refreshOsrmGeometry()
+        if (_state.value.places.isEmpty()) {
+            refreshPlaces(_state.value.user ?: KazanCenter)
+        }
     }
 
     private fun refreshOsrmGeometry() {

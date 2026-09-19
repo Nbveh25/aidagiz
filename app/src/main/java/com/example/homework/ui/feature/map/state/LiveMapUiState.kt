@@ -1,5 +1,6 @@
 package com.example.homework.ui.feature.map.state
 
+import com.example.homework.core.domain.navigation.distanceMetersToRoute
 import com.example.homework.entity.guide.AiGuideNarration
 import com.example.homework.entity.guide.AiGuidePlayback
 import com.example.homework.entity.map.GeoLocation
@@ -62,6 +63,22 @@ data class LiveMapUiState(
     val filteredPlaces: List<OsmPlace>
         get() = filterPlaces(places, placeFilter)
 
+    val mapPlaces: List<OsmPlace>
+        get() {
+            if (routePlaces.isEmpty()) return filteredPlaces
+            val geometry = route?.geometry.orEmpty()
+            if (geometry.size < 2) return emptyList()
+            val stopIds = routePlaces.map { it.id }.toSet()
+            return places.filter { place ->
+                place.id !in stopIds &&
+                    place.isHistoricOrAttraction &&
+                    distanceMetersToRoute(
+                        GeoLocation(place.lat, place.lon),
+                        geometry,
+                    ) <= ROUTE_SIGHT_RADIUS_METERS
+            }
+        }
+
     val selectedInRoute: Boolean
         get() = selectedPlaceId != null && routePlaces.any { it.id == selectedPlaceId }
 
@@ -74,3 +91,5 @@ data class LiveMapUiState(
             mode = transportMode,
         )
 }
+
+private const val ROUTE_SIGHT_RADIUS_METERS = 200

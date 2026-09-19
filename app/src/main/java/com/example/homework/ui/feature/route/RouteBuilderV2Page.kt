@@ -269,7 +269,7 @@ private fun RoutePlannerContent(
         OsmMap(
                 center = state.mapCenter,
                 user = state.user,
-                places = state.routePlaces.map { it.place }.ifEmpty { state.filteredPlaces },
+                places = state.mapPlaces,
                 routePlaces = state.routePlaces,
                 selectedPlaceId = state.selectedPlaceId,
                 routeGeometry = state.route?.geometry,

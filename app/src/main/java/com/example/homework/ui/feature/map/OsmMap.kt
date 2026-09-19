@@ -274,7 +274,7 @@ private fun syncPlaceMarkers(
 ) {
     val zoom = mapView.zoomLevelDouble
     val clustered = zoom < 14.0 && holder.routePlaces.isEmpty()
-    val displayPlaces = if (holder.routePlaces.isNotEmpty()) emptyList() else places
+    val displayPlaces = places
     val ids = displayPlaces.map { it.id }
     if (!holder.needsClusterRefresh &&
         holder.clusterZoom == zoom &&
