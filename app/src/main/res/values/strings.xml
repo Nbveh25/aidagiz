@@ -183,7 +183,7 @@
     <string name="builder_stats">%1$d мин · %2$d мин в пути · %3$d мин осмотр · %4$d мест</string>
     <string name="builder_retry">Повторить подбор</string>
     <string name="builder_rebuild">Перестроить</string>
-    <string name="builder_rebuild_placeholder">Я устал, осталось 30 минут</string>
+    <string name="builder_rebuild_placeholder">Другие пожелания</string>
     <string name="builder_start_nav">Начать навигацию</string>
     <string name="builder_validation">Выберите длительность и хотя бы один интерес</string>
     <string name="builder_rebuild_validation">Опишите, как изменить маршрут</string>

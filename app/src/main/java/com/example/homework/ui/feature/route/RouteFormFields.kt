@@ -1,5 +1,6 @@
 package com.example.homework.ui.feature.route
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,12 +14,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -36,6 +42,9 @@ import com.example.homework.ui.uikit.theme.GoldAccent
 import com.example.homework.ui.uikit.theme.TextOnForest
 import com.example.homework.ui.uikit.theme.TextPrimary
 import com.example.homework.ui.uikit.theme.TextSecondary
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -107,6 +116,7 @@ fun RouteFormFields(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WishField(
     value: String,
@@ -114,12 +124,18 @@ fun WishField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
             .clip(RoundedCornerShape(14.dp))
             .background(CreamDeep)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(
+                horizontal = 14.dp,
+                vertical = 12.dp
+            ),
     ) {
         if (value.isBlank()) {
             Text(placeholder, color = TextSecondary, fontSize = 14.sp)
@@ -129,7 +145,16 @@ fun WishField(
             onValueChange = { onValueChange(it.take(1_000)) },
             textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp, lineHeight = 20.sp),
             cursorBrush = SolidColor(ForestGreen),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusEvent { focusState ->
+                    if (focusState.isFocused) {
+                        scope.launch {
+                            delay(280.milliseconds)
+                            bringIntoViewRequester.bringIntoView()
+                        }
+                    }
+                },
         )
     }
 }

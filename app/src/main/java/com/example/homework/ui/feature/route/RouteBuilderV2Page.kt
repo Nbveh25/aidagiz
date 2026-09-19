@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -16,7 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -30,11 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -146,9 +147,11 @@ private fun RouteBuilderFormContent(
     formValid: Boolean,
     form: com.example.homework.entity.tour.RouteFormState,
 ) {
+    val keyboardOverlap = rememberKeyboardOverlapPx()
+    val formLift by animateIntAsState(keyboardOverlap, label = "formLift")
     Box(Modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(R.drawable.map_kazan),
+            painter = painterResource(R.drawable.photo_bauman),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
@@ -158,13 +161,17 @@ private fun RouteBuilderFormContent(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to Cream.copy(alpha = 0.97f),
-                        0.62f to Cream.copy(alpha = 0.88f),
-                        1f to Color.Transparent,
+                        0f to Cream.copy(alpha = 0.94f),
+                        0.42f to Cream.copy(alpha = 0.78f),
+                        1f to Cream.copy(alpha = 0.18f),
                     ),
                 ),
         )
-        Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .offset { IntOffset(0, -formLift) },
+        ) {
             LanguageToggle(
                 selected = language,
                 onSelect = onLanguageSelect,
@@ -175,9 +182,8 @@ private fun RouteBuilderFormContent(
             )
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
                 Text(
@@ -283,10 +289,13 @@ private fun RoutePlannerContent(
                 .statusBarsPadding()
                 .padding(16.dp),
         )
+        val keyboardOverlap = rememberKeyboardOverlapPx()
+        val panelLift by animateIntAsState(keyboardOverlap, label = "plannerLift")
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .offset { IntOffset(0, -panelLift) },
         ) {
                 RecenterChip(
                     onClick = onRecenter,
