@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Казан</string>
+    <string name="app_name">Казан якынрак</string>
 
     <string name="language_russian">РУ</string>
     <string name="language_tatar">ТТ</string>
@@ -149,4 +149,55 @@
     <string name="error_build_route">Маршрутны төзеп булмады</string>
     <string name="error_load_places">Урыннарны йөкләп булмады</string>
     <string name="error_http">Хата %d</string>
+
+    <string name="brand_line_1">Казан</string>
+    <string name="brand_line_2">якынрак, караганчы</string>
+    <string name="nav_home">Баш бит</string>
+    <string name="nav_map">Карта</string>
+    <string name="nav_events">Чаралар</string>
+    <string name="nav_tours">Экскурсияләр</string>
+    <string name="nav_profile">Профиль</string>
+    <string name="landing_kicker">Мәдәни маршрут</string>
+    <string name="landing_title_1">Казан</string>
+    <string name="landing_title_2">якынрак, караганчы</string>
+    <string name="landing_subtitle">Җылы шәһәр, ишегаллары һәм сезнең кызыксынуларга туры килгән җәяү маршруты.</string>
+    <string name="landing_cta">Маршрут сайлау</string>
+    <string name="landing_cta_map">Картаны ачу</string>
+    <string name="builder_title_1">Ял көнен җый</string>
+    <string name="builder_title_2">Казан буенча</string>
+    <string name="builder_duration">Озынлык</string>
+    <string name="builder_interests">Кызыксынулар</string>
+    <string name="builder_pace">Темп</string>
+    <string name="builder_wish">Теләк</string>
+    <string name="builder_wish_optional">мәҗбүри түгел</string>
+    <string name="builder_wish_placeholder">Мәсәлән: ишегаллары һәм татар ашлары күбрәк</string>
+    <string name="builder_next">Алга: маршрут сайлау</string>
+    <string name="builder_preview_1">Алдан карау</string>
+    <string name="builder_preview_2">маршруты</string>
+    <string name="builder_picking">Кызыксынуларыгыз буенча маршрут сайлыйбыз</string>
+    <string name="builder_edit">Үзгәртү</string>
+    <string name="builder_params">Параметрлар</string>
+    <string name="builder_params_summary">%1$d мин · %2$s · %3$d кызыксыну</string>
+    <string name="builder_stats">%1$d мин · юлда %2$d мин · карау %3$d мин · %4$d урын</string>
+    <string name="builder_retry">Яңадан сайлау</string>
+    <string name="builder_rebuild">Яңадан төзү</string>
+    <string name="builder_rebuild_placeholder">Арыдым, 30 минут калды</string>
+    <string name="builder_start_nav">Навигацияне башлау</string>
+    <string name="builder_validation">Озынлыкны һәм кимендә бер кызыксынуны сайлагыз</string>
+    <string name="builder_rebuild_validation">Маршрутны ничек үзгәртергә икәнен языгыз</string>
+    <string name="builder_rebuild_empty">Яңадан төзерлек нокталар юк</string>
+    <string name="builder_timeline_empty">Нокталар сайлаудан соң күренәчәк</string>
+    <string name="builder_stop_meta">%1$s · карау %2$d мин</string>
+    <string name="builder_stop_travel">юлда %d мин</string>
+    <string name="builder_duration_hours">%d сәг</string>
+    <string name="coming_soon_body">Бу бүлек соңрак ачылачак. Хәзер маршрут сайлый яки картаны ача аласыз.</string>
+    <string name="interest_history">тарих</string>
+    <string name="interest_tatar">татар мәдәнияте</string>
+    <string name="interest_architecture">архитектура</string>
+    <string name="interest_museums">музейлар</string>
+    <string name="interest_mosques">мәчетләр</string>
+    <string name="interest_parks">парклар</string>
+    <string name="pace_fast">тиз</string>
+    <string name="pace_normal">гади</string>
+    <string name="pace_leisurely">акрын</string>
 </resources>

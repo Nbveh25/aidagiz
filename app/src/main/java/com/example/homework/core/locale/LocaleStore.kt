@@ -4,7 +4,8 @@ import android.content.Context
 import androidx.core.content.edit
 
 class LocaleStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = (context.applicationContext ?: context)
+        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun get(): AppLanguage = AppLanguage.fromTag(prefs.getString(KEY_LANGUAGE, AppLanguage.Russian.tag))
 

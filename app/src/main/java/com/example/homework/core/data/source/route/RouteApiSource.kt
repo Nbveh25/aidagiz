@@ -9,6 +9,8 @@ import com.example.homework.entity.map.OsmPlace
 import com.example.homework.entity.map.PlaceCategory
 import com.example.homework.entity.map.clampToKazan
 import com.example.homework.entity.tour.AdventureRoute
+import com.example.homework.entity.tour.AdventureRouteRequest
+import com.example.homework.entity.tour.KazanTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -18,39 +20,37 @@ class RouteApiSource(
     private val api: GuideApiClient,
     private val anonymousUserSource: AnonymousUserSource,
 ) {
-    suspend fun buildRoute(
-        location: GeoLocation,
-        durationMinutes: Int = 240,
-        interests: List<String> = DEFAULT_INTERESTS,
-        pace: String = "обычный",
-        requiredPlaces: List<GeoLocation> = emptyList(),
-        visitedPlaces: String? = null,
-        aiRequest: String? = null,
-    ): AdventureRoute = withContext(Dispatchers.IO) {
-        val userId = anonymousUserSource.ensureUserId()
-        val start = location.clampToKazan()
-        val body = JSONObject()
-            .put("durationMinutes", durationMinutes)
-            .put("interests", JSONArray(interests))
-            .put("pace", pace)
-            .put("userLocation", start.toJson())
-            .put("optimizeVisitOrder", true)
-        if (requiredPlaces.isNotEmpty()) {
-            body.put(
-                "requiredPlaces",
-                JSONArray().apply {
-                    requiredPlaces.forEach { put(it.clampToKazan().toJson()) }
-                },
-            )
+    suspend fun buildRoute(request: AdventureRouteRequest): AdventureRoute =
+        withContext(Dispatchers.IO) {
+            val userId = anonymousUserSource.ensureUserId()
+            val start = request.userLocation.clampToKazan()
+            val body = JSONObject()
+                .put("durationMinutes", request.durationMinutes)
+                .put("interests", JSONArray(request.interests))
+                .put("pace", request.pace)
+                .put("userLocation", start.toJson())
+                .put("optimizeVisitOrder", request.optimizeVisitOrder)
+            if (request.requiredPlaces.isNotEmpty()) {
+                body.put(
+                    "requiredPlaces",
+                    JSONArray().apply {
+                        request.requiredPlaces.forEach { put(it.clampToKazan().toJson()) }
+                    },
+                )
+            }
+            if (!request.visitedPlaces.isNullOrBlank()) {
+                body.put("visitedPlaces", request.visitedPlaces)
+            }
+            if (!request.aiRequest.isNullOrBlank()) {
+                body.put("aiRequest", request.aiRequest)
+            }
+            body.put("startAt", request.startAt?.takeIf { it.isNotBlank() } ?: KazanTime.nowIso())
+            api.postJson(
+                path = "/route-adventure",
+                body = body,
+                headers = mapOf(GuideApiConfig.USER_ID_HEADER to userId),
+            ).toAdventureRoute()
         }
-        if (!visitedPlaces.isNullOrBlank()) body.put("visitedPlaces", visitedPlaces)
-        if (!aiRequest.isNullOrBlank()) body.put("aiRequest", aiRequest)
-        api.postJson(
-            path = "/route-adventure",
-            body = body,
-            headers = mapOf(GuideApiConfig.USER_ID_HEADER to userId),
-        ).toAdventureRoute()
-    }
 
     suspend fun rebuildRoute(
         userLocation: GeoLocation,
@@ -65,7 +65,7 @@ class RouteApiSource(
             .put("remainingPlaces", remainingPlaces.toCoordArray())
             .put("userLocation", userLocation.clampToKazan().toJson())
             .put("aiRequest", aiRequest)
-        if (!currentAt.isNullOrBlank()) body.put("currentAt", currentAt)
+            .put("currentAt", currentAt?.takeIf { it.isNotBlank() } ?: KazanTime.nowIso())
         api.postJson(
             path = "/route-adventure/rebuild",
             body = body,
@@ -101,6 +101,11 @@ class RouteApiSource(
         address = stringOrNull("address"),
         imageUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("imageUrl")),
         categoryIconUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("categoryIconUrl")),
+        stopOrder = intOrNull("order"),
+        arrivalAt = stringOrNull("arrivalAt"),
+        departureAt = stringOrNull("departureAt"),
+        travelDurationMinutes = intOrNull("travelDurationMinutes"),
+        visitDurationMinutes = intOrNull("visitDurationMinutes"),
     )
 
     private fun GeoLocation.toJson() = JSONObject()
@@ -111,14 +116,8 @@ class RouteApiSource(
         forEach { put(it.clampToKazan().toJson()) }
     }
 
-    companion object {
-        val DEFAULT_INTERESTS = listOf(
-            "история",
-            "татарская культура",
-            "архитектура",
-            "музеи",
-            "мечети",
-            "парки",
-        )
+    private fun JSONObject.intOrNull(key: String): Int? {
+        if (!has(key) || isNull(key)) return null
+        return optInt(key)
     }
 }

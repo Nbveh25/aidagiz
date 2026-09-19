@@ -13,6 +13,10 @@ import com.example.homework.entity.map.TransportMode
 import com.example.homework.entity.map.buildYandexMapsRouteUrl
 import com.example.homework.entity.map.filterPlaces
 import com.example.homework.entity.place.PlaceDetails
+import com.example.homework.entity.tour.AdventureRoute
+import com.example.homework.entity.tour.BuilderView
+import com.example.homework.entity.tour.RouteFormState
+import com.example.homework.entity.tour.RouteStatus
 import com.example.homework.entity.tour.TourProgress
 
 data class LiveMapUiState(
@@ -37,6 +41,13 @@ data class LiveMapUiState(
     val fitRouteToken: Int = 0,
     val routePanelExpanded: Boolean = false,
     val navigation: NavigationState = NavigationState(),
+    val builderView: BuilderView = BuilderView.Form,
+    val routeStatus: RouteStatus = RouteStatus.Idle,
+    val formState: RouteFormState = RouteFormState(),
+    val isPlannerExpanded: Boolean = false,
+    val paramsExpanded: Boolean = false,
+    val adventure: AdventureRoute? = null,
+    val rebuildPrompt: String = "",
 ) {
     val selectedPlace: OsmPlace?
         get() = places.firstOrNull { it.id == selectedPlaceId }

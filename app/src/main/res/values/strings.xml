@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Казань</string>
+    <string name="app_name">Казань ближе</string>
 
     <string name="language_russian">РУ</string>
     <string name="language_tatar">ТТ</string>
@@ -151,4 +151,55 @@
     <string name="error_build_route">Не удалось построить маршрут</string>
     <string name="error_load_places">Не удалось загрузить места</string>
     <string name="error_http">Ошибка %d</string>
+
+    <string name="brand_line_1">Казань</string>
+    <string name="brand_line_2">ближе, чем кажется</string>
+    <string name="nav_home">Главная</string>
+    <string name="nav_map">Карта</string>
+    <string name="nav_events">Мероприятия</string>
+    <string name="nav_tours">Экскурсии</string>
+    <string name="nav_profile">Профиль</string>
+    <string name="landing_kicker">Культурный маршрут</string>
+    <string name="landing_title_1">Казань</string>
+    <string name="landing_title_2">ближе, чем кажется</string>
+    <string name="landing_subtitle">Тёплый город, живые дворы и маршрут под ваши интересы — без спешки и лишнего шума.</string>
+    <string name="landing_cta">Подобрать маршрут</string>
+    <string name="landing_cta_map">Открыть карту</string>
+    <string name="builder_title_1">Собери прогулку</string>
+    <string name="builder_title_2">по Казани</string>
+    <string name="builder_duration">Длительность</string>
+    <string name="builder_interests">Интересы</string>
+    <string name="builder_pace">Темп</string>
+    <string name="builder_wish">Пожелание</string>
+    <string name="builder_wish_optional">необязательно</string>
+    <string name="builder_wish_placeholder">Например: больше дворов и татарской кухни</string>
+    <string name="builder_next">Далее: подбор маршрута</string>
+    <string name="builder_preview_1">Предпросмотр</string>
+    <string name="builder_preview_2">маршрута</string>
+    <string name="builder_picking">Подбираем маршрут под твои интересы</string>
+    <string name="builder_edit">Изменить</string>
+    <string name="builder_params">Параметры</string>
+    <string name="builder_params_summary">%1$d мин · %2$s · %3$d интересов</string>
+    <string name="builder_stats">%1$d мин · %2$d мин в пути · %3$d мин осмотр · %4$d мест</string>
+    <string name="builder_retry">Повторить подбор</string>
+    <string name="builder_rebuild">Перестроить</string>
+    <string name="builder_rebuild_placeholder">Я устал, осталось 30 минут</string>
+    <string name="builder_start_nav">Начать навигацию</string>
+    <string name="builder_validation">Выберите длительность и хотя бы один интерес</string>
+    <string name="builder_rebuild_validation">Опишите, как изменить маршрут</string>
+    <string name="builder_rebuild_empty">Нет точек, которые можно перестроить</string>
+    <string name="builder_timeline_empty">Точки появятся после подбора</string>
+    <string name="builder_stop_meta">%1$s · %2$d мин осмотр</string>
+    <string name="builder_stop_travel">%d мин в пути</string>
+    <string name="builder_duration_hours">%d ч</string>
+    <string name="coming_soon_body">Этот раздел появится позже. Сейчас можно подобрать маршрут или открыть карту.</string>
+    <string name="interest_history">история</string>
+    <string name="interest_tatar">татарская культура</string>
+    <string name="interest_architecture">архитектура</string>
+    <string name="interest_museums">музеи</string>
+    <string name="interest_mosques">мечети</string>
+    <string name="interest_parks">парки</string>
+    <string name="pace_fast">быстрый</string>
+    <string name="pace_normal">обычный</string>
+    <string name="pace_leisurely">неспешный</string>
 </resources>

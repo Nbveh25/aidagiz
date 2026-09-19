@@ -5,6 +5,8 @@ import com.example.homework.R
 import com.example.homework.entity.map.PlaceCategory
 import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.entity.map.TransportMode
+import com.example.homework.entity.tour.CulturalInterest
+import com.example.homework.entity.tour.WalkPace
 
 val PlaceFilter.labelRes: Int
     @StringRes get() = when (this) {
@@ -34,6 +36,23 @@ val PlaceCategory.labelRes: Int
         PlaceCategory.Attraction -> R.string.category_attraction
         PlaceCategory.Viewpoint -> R.string.category_viewpoint
         PlaceCategory.Other -> R.string.category_other
+    }
+
+val CulturalInterest.labelRes: Int
+    @StringRes get() = when (this) {
+        CulturalInterest.History -> R.string.interest_history
+        CulturalInterest.TatarCulture -> R.string.interest_tatar
+        CulturalInterest.Architecture -> R.string.interest_architecture
+        CulturalInterest.Museums -> R.string.interest_museums
+        CulturalInterest.Mosques -> R.string.interest_mosques
+        CulturalInterest.Parks -> R.string.interest_parks
+    }
+
+val WalkPace.labelRes: Int
+    @StringRes get() = when (this) {
+        WalkPace.Fast -> R.string.pace_fast
+        WalkPace.Normal -> R.string.pace_normal
+        WalkPace.Leisurely -> R.string.pace_leisurely
     }
 
 val TransportMode.labelRes: Int

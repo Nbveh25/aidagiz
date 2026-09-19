@@ -66,11 +66,20 @@ import org.koin.androidx.compose.koinViewModel
 fun LiveMapScreen(
     modifier: Modifier = Modifier,
     viewModel: LiveMapViewModel = koinViewModel(),
+    language: AppLanguage? = null,
+    onLanguageSelect: ((AppLanguage) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val localeStore = remember { LocaleStore(context) }
-    val language = remember { localeStore.get() }
+    val fallbackLanguage = remember { localeStore.get() }
+    val resolvedLanguage = language ?: fallbackLanguage
+    val resolveLanguageSelect = onLanguageSelect ?: { selected ->
+        if (selected != resolvedLanguage) {
+            localeStore.set(selected)
+            (context as? Activity)?.recreate()
+        }
+    }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -146,13 +155,8 @@ fun LiveMapScreen(
         onToggleMute = viewModel::toggleGuideSound,
         onPreviousStop = viewModel::goToPreviousStop,
         onNextStop = viewModel::goToNextStop,
-        language = language,
-        onLanguageSelect = { selected ->
-            if (selected != language) {
-                localeStore.set(selected)
-                (context as? Activity)?.recreate()
-            }
-        },
+        language = resolvedLanguage,
+        onLanguageSelect = resolveLanguageSelect,
         modifier = modifier,
     )
 }
@@ -193,6 +197,8 @@ fun LiveMapContent(
     onNextStop: () -> Unit = {},
     language: AppLanguage = AppLanguage.Russian,
     onLanguageSelect: (AppLanguage) -> Unit = {},
+    showLanguageToggle: Boolean = true,
+    consumeStatusBars: Boolean = true,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         OsmMap(
@@ -214,7 +220,7 @@ fun LiveMapContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .then(if (consumeStatusBars) Modifier.statusBarsPadding() else Modifier)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -237,10 +243,12 @@ fun LiveMapContent(
                     loading = state.isLoadingPlaces,
                     modifier = Modifier.weight(1f),
                 )
-                LanguageToggle(
-                    selected = language,
-                    onSelect = onLanguageSelect,
-                )
+                if (showLanguageToggle) {
+                    LanguageToggle(
+                        selected = language,
+                        onSelect = onLanguageSelect,
+                    )
+                }
             }
             if (!state.navigation.isActive) {
                 PlaceFilterBar(

@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.homework.core.locale.LocaleHelper
-import com.example.homework.ui.feature.map.LiveMapScreen
+import com.example.homework.ui.app.KazantourApp
 import com.example.homework.ui.uikit.theme.HomeworkTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             HomeworkTheme {
-                LiveMapScreen()
+                KazantourApp()
             }
         }
     }

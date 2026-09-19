@@ -1,12 +1,10 @@
-package com.example.homework.core.domain.repository
+package com.example.homework.core.domain.usecase
 
 import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.tour.AdventureRoute
-import com.example.homework.entity.tour.AdventureRouteRequest
 
-interface RouteRepository {
-    suspend fun buildRoute(request: AdventureRouteRequest): AdventureRoute
-    suspend fun rebuildRoute(
+interface RebuildAdventureRouteUseCase {
+    suspend operator fun invoke(
         userLocation: GeoLocation,
         visitedPlaces: List<GeoLocation>,
         remainingPlaces: List<GeoLocation>,

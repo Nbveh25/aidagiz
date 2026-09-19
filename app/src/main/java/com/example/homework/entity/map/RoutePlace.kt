@@ -4,6 +4,9 @@ data class RoutePlace(
     val place: OsmPlace,
     val order: Int,
     val visitDurationMinutes: Int,
+    val travelDurationMinutes: Int = 0,
+    val arrivalAt: String? = null,
+    val departureAt: String? = null,
 ) {
     val id: String get() = place.id
     val name: String get() = place.name

@@ -2,7 +2,7 @@ package com.example.homework.core.data.source.api
 
 /** Base URL сервиса TatarTouristGuideService из Swagger. */
 object GuideApiConfig {
-    const val BASE_URL = "http://192.168.3.11:5137"
+    const val BASE_URL = "http://10.2.67.189:5137"
     const val USER_ID_HEADER = "X-User-Id"
 
     fun rewriteMediaUrl(url: String?): String? {

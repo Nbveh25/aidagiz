@@ -6,6 +6,7 @@ import com.example.homework.R
 import com.example.homework.core.domain.navigation.WalkingNavigation
 import com.example.homework.core.locale.AppStrings
 import com.example.homework.core.domain.usecase.ControlAiGuideUseCase
+import com.example.homework.core.domain.usecase.BuildAdventureRouteUseCase
 import com.example.homework.core.domain.usecase.EnsureAnonymousUserUseCase
 import com.example.homework.core.domain.usecase.GetAiGuideUseCase
 import com.example.homework.core.domain.usecase.GetNearbyPlacesUseCase
@@ -18,6 +19,7 @@ import com.example.homework.core.domain.usecase.GoToPreviousStopUseCase
 import com.example.homework.core.domain.usecase.MarkPlaceVisitedUseCase
 import com.example.homework.core.domain.usecase.ObserveAiGuidePlaybackUseCase
 import com.example.homework.core.domain.usecase.OptimizeRoutePlacesUseCase
+import com.example.homework.core.domain.usecase.RebuildAdventureRouteUseCase
 import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.map.KazanCenter
 import com.example.homework.entity.map.NavigationStatus
@@ -28,6 +30,11 @@ import com.example.homework.entity.map.addRoutePlace
 import com.example.homework.entity.map.distanceMeters
 import com.example.homework.entity.map.removeRoutePlace
 import com.example.homework.entity.map.updateRoutePlaceVisitDuration
+import com.example.homework.entity.tour.BuilderView
+import com.example.homework.entity.tour.KazanTime
+import com.example.homework.entity.tour.RouteStatus
+import com.example.homework.entity.tour.WalkPace
+import com.example.homework.entity.tour.toRoutePlaces
 import com.example.homework.ui.feature.map.state.LiveMapUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -53,6 +60,8 @@ class LiveMapViewModel(
     private val ensureAnonymousUser: EnsureAnonymousUserUseCase,
     private val getOsrmRoute: GetOsrmRouteUseCase,
     private val optimizeRoutePlaces: OptimizeRoutePlacesUseCase,
+    private val buildAdventureRoute: BuildAdventureRouteUseCase,
+    private val rebuildAdventureRoute: RebuildAdventureRouteUseCase,
     private val strings: AppStrings,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
@@ -64,6 +73,7 @@ class LiveMapViewModel(
     private var locationJob: Job? = null
     private var placesJob: Job? = null
     private var routeJob: Job? = null
+    private var adventureJob: Job? = null
     private var didCenterOnUser = false
     private var didReloadAroundUser = false
 
@@ -125,6 +135,115 @@ class LiveMapViewModel(
 
     fun toggleRoutePanel() {
         _state.update { it.copy(routePanelExpanded = !it.routePanelExpanded) }
+    }
+
+    fun openRouteBuilder() {
+        val current = _state.value
+        if (current.builderView == BuilderView.Planner || current.routeStatus == RouteStatus.Success) {
+            _state.update { it.copy(builderView = BuilderView.Planner, isPlannerExpanded = true) }
+        } else {
+            _state.update { it.copy(builderView = BuilderView.Form, isPlannerExpanded = false) }
+        }
+    }
+
+    fun setDurationMinutes(minutes: Int) {
+        _state.update {
+            it.copy(formState = it.formState.copy(durationMinutes = minutes.coerceIn(30, 720)))
+        }
+    }
+
+    fun toggleInterest(interest: String) {
+        _state.update { state ->
+            val current = state.formState.interests
+            val next = if (interest in current) current - interest else current + interest
+            state.copy(formState = state.formState.copy(interests = next))
+        }
+    }
+
+    fun setPace(pace: WalkPace) {
+        _state.update { it.copy(formState = it.formState.copy(pace = pace)) }
+    }
+
+    fun setAiRequest(value: String) {
+        _state.update { it.copy(formState = it.formState.copy(aiRequest = value)) }
+    }
+
+    fun setRebuildPrompt(value: String) {
+        _state.update { it.copy(rebuildPrompt = value.take(1_000)) }
+    }
+
+    fun toggleParamsExpanded() {
+        _state.update { it.copy(paramsExpanded = !it.paramsExpanded) }
+    }
+
+    fun submitAdventureRoute() {
+        val form = _state.value.formState
+        if (!form.isValid) {
+            _state.update { it.copy(errorMessage = strings.get(R.string.builder_validation)) }
+            return
+        }
+        _state.update {
+            it.copy(
+                builderView = BuilderView.Planner,
+                isPlannerExpanded = true,
+                paramsExpanded = false,
+                errorMessage = null,
+            )
+        }
+        requestAdventureCreate()
+    }
+
+    fun retryAdventureRoute() = requestAdventureCreate()
+
+    fun rebuildAdventure() {
+        val prompt = _state.value.rebuildPrompt.trim()
+        if (prompt.length !in 1..1_000) {
+            _state.update { it.copy(errorMessage = strings.get(R.string.builder_rebuild_validation)) }
+            return
+        }
+        val remaining = if (navigator.state.isActive) {
+            navigator.remainingPlaces().map { it.location }
+        } else {
+            _state.value.routePlaces.map { it.location }
+        }
+        if (remaining.isEmpty()) {
+            _state.update { it.copy(errorMessage = strings.get(R.string.builder_rebuild_empty)) }
+            return
+        }
+        val remainingIds = if (navigator.state.isActive) {
+            navigator.remainingPlaces().map { it.id }.toSet()
+        } else {
+            _state.value.routePlaces.map { it.id }.toSet()
+        }
+        val visited = _state.value.routePlaces
+            .filter { it.id !in remainingIds }
+            .map { it.location }
+        if (adventureJob?.isActive == true) return
+        adventureJob = viewModelScope.launch {
+            _state.update {
+                it.copy(routeStatus = RouteStatus.Loading, errorMessage = null)
+            }
+            try {
+                runCatching { ensureAnonymousUser() }
+                val rebuilt = rebuildAdventureRoute(
+                    userLocation = _state.value.user ?: KazanCenter,
+                    visitedPlaces = visited,
+                    remainingPlaces = remaining,
+                    aiRequest = prompt,
+                    currentAt = KazanTime.nowIso(),
+                )
+                applyAdventureResult(rebuilt)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        routeStatus = RouteStatus.Error,
+                        errorMessage = e.message ?: strings.get(R.string.error_build_route),
+                    )
+                }
+            }
+        }
     }
 
     fun toggleSelectedInRoute() {
@@ -253,6 +372,68 @@ class LiveMapViewModel(
         refreshPlaces(around = _state.value.user, force = true)
     }
 
+    private fun requestAdventureCreate() {
+        if (adventureJob?.isActive == true) return
+        adventureJob = viewModelScope.launch {
+            _state.update {
+                it.copy(routeStatus = RouteStatus.Loading, errorMessage = null)
+            }
+            try {
+                runCatching { ensureAnonymousUser() }
+                val form = _state.value.formState
+                val created = buildAdventureRoute(
+                    form.toRequest(
+                        location = _state.value.user ?: KazanCenter,
+                        startAt = KazanTime.nowIso(),
+                    ),
+                )
+                applyAdventureResult(created)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        routeStatus = RouteStatus.Error,
+                        errorMessage = e.message ?: strings.get(R.string.error_build_route),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyAdventureResult(route: com.example.homework.entity.tour.AdventureRoute) {
+        val places = route.toRoutePlaces()
+        if (places.isEmpty()) {
+            _state.update {
+                it.copy(
+                    adventure = route,
+                    routePlaces = emptyList(),
+                    routeStatus = RouteStatus.Error,
+                    errorMessage = strings.get(R.string.error_build_route),
+                )
+            }
+            return
+        }
+        getTourProgress.bindStops(places.map { it.place })
+        _state.update {
+            it.copy(
+                routePlaces = places,
+                adventure = route,
+                routeStatus = RouteStatus.Success,
+                transportMode = TransportMode.Walking,
+                routePanelExpanded = true,
+                paramsExpanded = false,
+                errorMessage = null,
+            )
+        }
+        refreshOsrmGeometry()
+    }
+
+    private fun refreshOsrmGeometry() {
+        routeJob?.cancel()
+        requestOsrmRoute(fromNavigation = false)
+    }
+
     private fun addToRoute(place: OsmPlace) {
         updateRoutePlaces(addRoutePlace(_state.value.routePlaces, place), dirty = true)
         _state.update { it.copy(routePanelExpanded = true) }
@@ -281,7 +462,7 @@ class LiveMapViewModel(
             _state.update { it.copy(route = null, routeDirty = false, isBuildingRoute = false) }
             return
         }
-        if (routeJob?.isActive == true) return
+        routeJob?.cancel()
         routeJob = viewModelScope.launch {
             _state.update { it.copy(isBuildingRoute = true, errorMessage = null) }
             try {

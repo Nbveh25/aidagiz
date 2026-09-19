@@ -13,9 +13,9 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = TextOnForest,
     secondary = RouteGreen,
     onSecondary = TextOnForest,
-    background = MapScrim,
+    background = Cream,
     onBackground = TextPrimary,
-    surface = SheetWhite,
+    surface = Cream,
     onSurface = TextPrimary,
 )
 

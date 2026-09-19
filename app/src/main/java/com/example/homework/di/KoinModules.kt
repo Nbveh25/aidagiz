@@ -53,8 +53,10 @@ import com.example.homework.core.domain.usecase.MarkPlaceVisitedUseCase
 import com.example.homework.core.domain.usecase.ObserveAiGuidePlaybackUseCase
 import com.example.homework.core.domain.usecase.OptimizeRoutePlacesUseCase
 import com.example.homework.core.domain.usecase.RatePlaceUseCase
+import com.example.homework.core.domain.usecase.RebuildAdventureRouteUseCase
 import com.example.homework.core.domain.usecase.impl.BuildAdventureRouteUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.ContinueRouteUseCaseImpl
+import com.example.homework.core.domain.usecase.impl.RebuildAdventureRouteUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.ControlAiGuideUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.EnsureAnonymousUserUseCaseImpl
 import com.example.homework.core.domain.usecase.impl.GetAiGuideUseCaseImpl
@@ -141,6 +143,7 @@ val domainModule = module {
     factoryOf(::ContinueRouteUseCaseImpl) bind ContinueRouteUseCase::class
     factoryOf(::EnsureAnonymousUserUseCaseImpl) bind EnsureAnonymousUserUseCase::class
     factoryOf(::BuildAdventureRouteUseCaseImpl) bind BuildAdventureRouteUseCase::class
+    factoryOf(::RebuildAdventureRouteUseCaseImpl) bind RebuildAdventureRouteUseCase::class
     factoryOf(::GetOsrmRouteUseCaseImpl) bind GetOsrmRouteUseCase::class
     factoryOf(::OptimizeRoutePlacesUseCaseImpl) bind OptimizeRoutePlacesUseCase::class
     factoryOf(::RatePlaceUseCaseImpl) bind RatePlaceUseCase::class

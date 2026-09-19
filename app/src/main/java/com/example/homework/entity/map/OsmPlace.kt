@@ -11,6 +11,11 @@ data class OsmPlace(
     val imageUrl: String? = null,
     val categoryIconUrl: String? = null,
     val openingHours: String? = null,
+    val stopOrder: Int? = null,
+    val arrivalAt: String? = null,
+    val departureAt: String? = null,
+    val travelDurationMinutes: Int? = null,
+    val visitDurationMinutes: Int? = null,
 ) {
     fun distanceMetersTo(location: GeoLocation): Int =
         distanceMeters(lat, lon, location.lat, location.lon)
