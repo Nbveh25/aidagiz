@@ -2,6 +2,7 @@ package com.example.homework.ui.feature.map
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -237,6 +239,7 @@ private fun CollapsedPlaceContent(
         ) {
             PlacePhoto(
                 imageUrl = details?.imageUrl ?: place.imageUrl,
+                fallbackRes = details?.photoRes,
                 contentDescription = place.name,
                 loading = isLoadingDetails,
                 modifier = Modifier
@@ -314,6 +317,7 @@ private fun ExpandedPlaceContent(
     Column(modifier = modifier.fillMaxWidth()) {
         PlacePhoto(
             imageUrl = details?.imageUrl ?: place.imageUrl,
+            fallbackRes = details?.photoRes,
             contentDescription = place.name,
             loading = isLoadingDetails,
             modifier = Modifier
@@ -434,32 +438,44 @@ private fun PlacePhoto(
     contentDescription: String,
     modifier: Modifier = Modifier,
     loading: Boolean = false,
+    fallbackRes: Int? = null,
 ) {
     Box(
         modifier = modifier.background(Color(0xFFE7E4DC)),
         contentAlignment = Alignment.Center,
     ) {
         when {
-            loading && imageUrl.isNullOrBlank() -> {
+            loading && imageUrl.isNullOrBlank() && fallbackRes == null -> {
                 CircularProgressIndicator(
                     modifier = Modifier.size(22.dp),
                     color = ForestGreen,
                     strokeWidth = 2.dp,
                 )
             }
-            imageUrl.isNullOrBlank() -> {
-                Text(
-                    text = stringResource(R.string.place_no_photo),
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                )
-            }
-            else -> {
+            !imageUrl.isNullOrBlank() -> {
+                val fallback = fallbackRes?.let { painterResource(it) }
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = contentDescription,
                     contentScale = ContentScale.Crop,
+                    placeholder = fallback,
+                    error = fallback,
                     modifier = Modifier.fillMaxSize(),
+                )
+            }
+            fallbackRes != null -> {
+                Image(
+                    painter = painterResource(fallbackRes),
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            else -> {
+                Text(
+                    text = stringResource(R.string.place_no_photo),
+                    color = TextSecondary,
+                    fontSize = 12.sp,
                 )
             }
         }

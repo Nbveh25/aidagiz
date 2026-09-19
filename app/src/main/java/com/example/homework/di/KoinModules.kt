@@ -19,6 +19,7 @@ import com.example.homework.core.data.source.guide.VoiceReadingSource
 import com.example.homework.core.data.source.osrm.OsrmSource
 import com.example.homework.core.data.source.overpass.OverpassSource
 import com.example.homework.core.data.source.place.PlaceDetailsSource
+import com.example.homework.core.data.source.place.PlaceImageSource
 import com.example.homework.core.data.source.place.PlaceStorySource
 import com.example.homework.core.data.source.place.HistoricalPlacesApiSource
 import com.example.homework.core.data.source.place.PlacesApiSource
@@ -124,6 +125,7 @@ val dataModule = module {
     singleOf(::VoiceReadingSource)
     singleOf(::LocationRatingSource)
     singleOf(::PlaceDetailsSource)
+    singleOf(::PlaceImageSource)
     singleOf(::PlaceStorySource)
     singleOf(::TourSource)
 

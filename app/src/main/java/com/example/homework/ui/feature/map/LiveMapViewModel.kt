@@ -41,11 +41,14 @@ import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.KazanTime
 import com.example.homework.entity.tour.RouteStatus
 import com.example.homework.entity.tour.WalkPace
+import com.example.homework.core.data.source.place.PlaceImageSource
 import com.example.homework.entity.tour.toRoutePlaces
+import com.example.homework.entity.tour.withMockSightDescription
 import com.example.homework.ui.feature.map.state.LiveMapUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +76,7 @@ class LiveMapViewModel(
     private val optimizeRoutePlaces: OptimizeRoutePlacesUseCase,
     private val buildAdventureRoute: BuildAdventureRouteUseCase,
     private val rebuildAdventureRoute: RebuildAdventureRouteUseCase,
+    private val placeImageSource: PlaceImageSource,
     private val strings: AppStrings,
     private val localeStore: LocaleStore,
 ) : ViewModel() {
@@ -87,6 +91,7 @@ class LiveMapViewModel(
     private var historicalJob: Job? = null
     private var routeJob: Job? = null
     private var adventureJob: Job? = null
+    private var corridorImageJob: Job? = null
     private var didCenterOnUser = false
     private var didReloadAroundUser = false
 
@@ -503,6 +508,7 @@ class LiveMapViewModel(
                     navigator.onRouteBuilt(result)
                     publishNavigation()
                 }
+                applyCorridorImages()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -564,9 +570,12 @@ class LiveMapViewModel(
             }
             return
         }
-        val place = _state.value.places.firstOrNull { it.id == placeId }
+        val rawPlace = _state.value.places.firstOrNull { it.id == placeId }
             ?: _state.value.routePlaces.firstOrNull { it.id == placeId }?.place
             ?: return
+        val alongCorridor = rawPlace.id.startsWith("demo-") ||
+            _state.value.mapPlaces.any { it.id == rawPlace.id }
+        val place = if (alongCorridor) rawPlace.withMockSightDescription() else rawPlace
         val historicalDetails = if (place.isHistorical) getHistoricalPlaceDetails.cached(place.id) else null
         val displayPlace = historicalDetails?.let { enrichHistoricalPlace(place, it) } ?: place
         val loadingHistorical = place.isHistorical &&
@@ -583,6 +592,9 @@ class LiveMapViewModel(
                 isLoadingHistoricalDetails = loadingHistorical,
             )
         }
+        if (alongCorridor && place.imageUrl.isNullOrBlank()) {
+            viewModelScope.launch { applyUniqueImage(place.id) }
+        }
         if (place.isHistorical) {
             if (loadingHistorical) {
                 viewModelScope.launch {
@@ -593,10 +605,12 @@ class LiveMapViewModel(
                         return@launch
                     }
                     applyHistoricalDetails(place.id, details)
+                    applyUniqueImage(place.id)
                 }
             }
             return
         }
+        if (place.id.startsWith("demo-")) return
         viewModelScope.launch {
             getPlaceDetails.loadStory(place.id)
             if (_state.value.selectedPlaceId != place.id) return@launch
@@ -666,6 +680,7 @@ class LiveMapViewModel(
                 if (_state.value.historicalYearRange != years) {
                     refreshHistoricalPlaces()
                 }
+                applyCorridorImages()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -696,6 +711,7 @@ class LiveMapViewModel(
                     },
                 )
             }
+            applyCorridorImages()
         }
     }
 
@@ -818,6 +834,68 @@ class LiveMapViewModel(
             isGuideOpen = if (selectedStillVisible) isGuideOpen else false,
             isLoadingHistoricalDetails = loadingHistorical,
         )
+    }
+
+    private fun applyCorridorImages() {
+        val targets = _state.value.mapPlaces.filter { it.imageUrl.isNullOrBlank() }
+        if (targets.isEmpty()) return
+        corridorImageJob?.cancel()
+        corridorImageJob = viewModelScope.launch {
+            val updates = coroutineScope {
+                targets.map { place ->
+                    async {
+                        val url = runCatching { placeImageSource.findImageUrl(place) }.getOrNull()
+                        place.id to url
+                    }
+                }.awaitAll()
+            }.mapNotNull { (id, url) -> url?.let { id to it } }.toMap()
+            if (updates.isEmpty()) return@launch
+            _state.update { state ->
+                val places = state.places.map { place ->
+                    val url = updates[place.id] ?: return@map place
+                    place.copy(imageUrl = url)
+                }
+                val selected = state.selectedPlaceId
+                val selectedPlace = places.firstOrNull { it.id == selected }
+                    ?: state.routePlaces.firstOrNull { it.id == selected }?.place
+                val details = state.placeDetails
+                state.copy(
+                    places = places,
+                    placeDetails = if (
+                        selectedPlace != null &&
+                        details != null &&
+                        details.placeId == selected
+                    ) {
+                        details.copy(imageUrl = selectedPlace.imageUrl)
+                    } else {
+                        details
+                    },
+                )
+            }
+        }
+    }
+
+    private suspend fun applyUniqueImage(placeId: String) {
+        val place = _state.value.places.firstOrNull { it.id == placeId }
+            ?: _state.value.routePlaces.firstOrNull { it.id == placeId }?.place
+            ?: return
+        if (!place.imageUrl.isNullOrBlank()) return
+        val url = runCatching { placeImageSource.findImageUrl(place) }.getOrNull() ?: return
+        _state.update { state ->
+            if (state.selectedPlaceId != placeId) return@update state
+            val places = state.places.map { item ->
+                if (item.id == placeId) item.copy(imageUrl = url) else item
+            }
+            val routePlaces = state.routePlaces.map { item ->
+                if (item.id == placeId) item.copy(place = item.place.copy(imageUrl = url)) else item
+            }
+            val details = state.placeDetails
+            state.copy(
+                places = places,
+                routePlaces = routePlaces,
+                placeDetails = if (details?.placeId == placeId) details.copy(imageUrl = url) else details,
+            )
+        }
     }
 
     private companion object {
