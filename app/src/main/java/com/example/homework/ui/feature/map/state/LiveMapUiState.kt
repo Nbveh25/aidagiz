@@ -3,6 +3,7 @@ package com.example.homework.ui.feature.map.state
 import com.example.homework.core.domain.navigation.distanceMetersToRoute
 import com.example.homework.entity.guide.AiGuideNarration
 import com.example.homework.entity.guide.AiGuidePlayback
+import com.example.homework.entity.guide.SpeechStatus
 import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.map.KazanCenter
 import com.example.homework.entity.map.NavigationState
@@ -46,11 +47,19 @@ data class LiveMapUiState(
     val routePanelExpanded: Boolean = false,
     val navigation: NavigationState = NavigationState(),
     val builderView: BuilderView = BuilderView.Form,
+    val customStart: GeoLocation? = null,
+    val draftStart: GeoLocation? = null,
+    val pickStartReturnView: BuilderView = BuilderView.Form,
     val routeStatus: RouteStatus = RouteStatus.Idle,
     val formState: RouteFormState = RouteFormState(),
     val isPlannerExpanded: Boolean = false,
     val paramsExpanded: Boolean = false,
     val adventure: AdventureRoute? = null,
+    val routeSummary: String = "",
+    val isRouteSummaryVisible: Boolean = false,
+    val isRouteSummaryExpanded: Boolean = false,
+    val routeSummarySpeech: SpeechStatus = SpeechStatus.Idle,
+    val routeSummaryFinished: Boolean = false,
     val rebuildPrompt: String = "",
     val historicalYearRange: YearRange = YearRange.Default,
     val isLoadingHistoricalDetails: Boolean = false,
@@ -61,13 +70,20 @@ data class LiveMapUiState(
             ?: routePlaces.firstOrNull { it.id == selectedPlaceId }?.place
 
     val mapCenter: GeoLocation
-        get() = user ?: KazanCenter
+        get() = when (builderView) {
+            BuilderView.PickStart -> draftStart ?: customStart ?: KazanCenter
+            else -> customStart ?: user ?: KazanCenter
+        }
+
+    val routeStart: GeoLocation
+        get() = customStart ?: user ?: KazanCenter
 
     val filteredPlaces: List<OsmPlace>
         get() = filterPlaces(places, placeFilter)
 
     val mapPlaces: List<OsmPlace>
         get() {
+            if (placeFilter == PlaceFilter.History) return filteredPlaces
             if (routePlaces.isEmpty()) return filteredPlaces
             val geometry = route?.geometry.orEmpty()
             if (geometry.size < 2) return emptyList()
@@ -90,9 +106,21 @@ data class LiveMapUiState(
 
     val yandexUrl: String
         get() = buildYandexMapsRouteUrl(
-            points = listOf(mapCenter) + routePlaces.map { it.location },
+            points = listOf(routeStart) + routePlaces.map { it.location },
             mode = transportMode,
         )
+
+    val showRouteSummaryPopup: Boolean
+        get() = isRouteSummaryVisible &&
+            routeSummary.isNotBlank() &&
+            placeFilter != PlaceFilter.History &&
+            !isGuideOpen
+
+    val showRouteSummaryReopen: Boolean
+        get() = !isRouteSummaryVisible &&
+            routeSummary.isNotBlank() &&
+            placeFilter != PlaceFilter.History &&
+            !isGuideOpen
 }
 
 private const val ROUTE_SIGHT_RADIUS_METERS = 200

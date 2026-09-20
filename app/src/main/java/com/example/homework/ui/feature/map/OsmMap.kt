@@ -66,11 +66,14 @@ fun OsmMap(
     onPlaceSelected: (String?) -> Unit,
     onUserMapInteraction: () -> Unit,
     modifier: Modifier = Modifier,
+    start: GeoLocation? = null,
+    onMapLocationSelected: ((GeoLocation) -> Unit)? = null,
 ) {
     if (LocalInspectionMode.current) {
         MapPreviewPlaceholder(
             center = center,
             user = user,
+            start = start,
             places = places,
             routePlaces = routePlaces,
             routeGeometry = routeGeometry,
@@ -88,6 +91,7 @@ fun OsmMap(
     val holder = remember { OsmMapHolder() }
     holder.onPlaceSelected = onPlaceSelected
     holder.onUserMapInteraction = onUserMapInteraction
+    holder.onMapLocationSelected = onMapLocationSelected
 
     AndroidView(
         modifier = modifier,
@@ -106,6 +110,11 @@ fun OsmMap(
                     MapEventsOverlay(
                         object : MapEventsReceiver {
                             override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                                val point = p ?: return false
+                                holder.onMapLocationSelected?.let { listener ->
+                                    listener(GeoLocation(lat = point.latitude, lon = point.longitude))
+                                    return true
+                                }
                                 holder.onPlaceSelected(null)
                                 return false
                             }
@@ -166,6 +175,7 @@ fun OsmMap(
             )
             syncRouteMarkers(mapView, holder, routePlaces, selectedPlaceId, routeSizePx)
             syncUserMarker(mapView, holder, user)
+            syncStartMarker(mapView, holder, start)
             if (followUser && user != null) {
                 mapView.mapOrientation = user.bearing
                 mapView.controller.setZoom(17.0)
@@ -173,7 +183,12 @@ fun OsmMap(
             } else if (holder.lastRecenterToken != recenterToken) {
                 holder.lastRecenterToken = recenterToken
                 mapView.mapOrientation = 0f
-                val target = user ?: center
+                val target = when {
+                    followUser && user != null -> user
+                    start != null -> start
+                    user != null -> user
+                    else -> center
+                }
                 mapView.controller.animateTo(GeoPoint(target.lat, target.lon))
             }
             if (holder.lastFitRouteToken != fitRouteToken && !routeGeometry.isNullOrEmpty()) {
@@ -229,6 +244,8 @@ private class OsmMapHolder {
     var routeSizePx = 36
     var onPlaceSelected: (String?) -> Unit = {}
     var onUserMapInteraction: () -> Unit = {}
+    var onMapLocationSelected: ((GeoLocation) -> Unit)? = null
+    var startMarker: Marker? = null
 }
 
 private data class MarkerIconKey(
@@ -451,6 +468,50 @@ private fun syncUserMarker(
     mapView.invalidate()
 }
 
+private fun syncStartMarker(
+    mapView: MapView,
+    holder: OsmMapHolder,
+    start: GeoLocation?,
+) {
+    if (start == null) {
+        holder.startMarker?.let { mapView.overlays.remove(it) }
+        holder.startMarker = null
+        mapView.invalidate()
+        return
+    }
+    val marker = holder.startMarker ?: Marker(mapView).apply {
+        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+        setInfoWindow(null)
+        setOnMarkerClickListener { _, _ -> true }
+        mapView.overlays.add(this)
+        holder.startMarker = this
+    }
+    marker.position = GeoPoint(start.lat, start.lon)
+    marker.icon = startDrawable(mapView, 36)
+    holder.startMarker?.let { startMarker ->
+        mapView.overlays.remove(startMarker)
+        mapView.overlays.add(startMarker)
+    }
+    mapView.invalidate()
+}
+
+private fun startDrawable(mapView: MapView, sizePx: Int): Drawable {
+    val bitmap = createBitmap(sizePx, sizePx)
+    val canvas = Canvas(bitmap)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFC4A265.toInt() }
+    val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFFFFFFF.toInt()
+        style = Paint.Style.STROKE
+        strokeWidth = sizePx * 0.12f
+    }
+    val radius = sizePx / 2f - stroke.strokeWidth
+    canvas.drawCircle(sizePx / 2f, sizePx / 2f, radius, fill)
+    canvas.drawCircle(sizePx / 2f, sizePx / 2f, radius, stroke)
+    val inner = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF163833.toInt() }
+    canvas.drawCircle(sizePx / 2f, sizePx / 2f, radius * 0.28f, inner)
+    return bitmap.toDrawable(mapView.resources)
+}
+
 private fun markerDrawable(
     mapView: MapView,
     holder: OsmMapHolder,
@@ -601,6 +662,7 @@ private class DragDetectOverlay(
 private fun MapPreviewPlaceholder(
     center: GeoLocation,
     user: GeoLocation?,
+    start: GeoLocation?,
     places: List<OsmPlace>,
     routePlaces: List<RoutePlace>,
     routeGeometry: List<GeoLocation>?,
@@ -649,6 +711,10 @@ private fun MapPreviewPlaceholder(
                     center = point(stop.location),
                     style = Stroke(width = 5f, join = StrokeJoin.Round),
                 )
+            }
+            start?.let { location ->
+                drawCircle(Color(0xFFC4A265), 18f, point(location))
+                drawCircle(Color(0xFF163833), 6f, point(location))
             }
             user?.let { location ->
                 drawCircle(Color(0x332F80FF), 48f, point(location))

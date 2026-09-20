@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.homework.R
+import com.example.homework.entity.map.GeoLocation
 import com.example.homework.entity.tour.CulturalInterest
 import com.example.homework.entity.tour.RouteFormState
 import com.example.homework.entity.tour.WalkPace
@@ -56,8 +57,19 @@ fun RouteFormFields(
     onAiRequest: (String) -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    customStart: GeoLocation? = null,
+    onUseMyLocation: () -> Unit = {},
+    onPickOnMap: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        FormLabel(stringResource(R.string.builder_start))
+        Spacer(Modifier.height(8.dp))
+        StartPointField(
+            customStart = customStart,
+            onUseMyLocation = onUseMyLocation,
+            onPickOnMap = onPickOnMap,
+        )
+        Spacer(Modifier.height(if (compact) 14.dp else 18.dp))
         FormLabel(stringResource(R.string.builder_duration))
         Spacer(Modifier.height(8.dp))
         FlowRow(
@@ -113,6 +125,45 @@ fun RouteFormFields(
             onValueChange = onAiRequest,
             placeholder = stringResource(R.string.builder_wish_placeholder),
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun StartPointField(
+    customStart: GeoLocation?,
+    onUseMyLocation: () -> Unit,
+    onPickOnMap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ChoiceChip(
+                label = stringResource(R.string.builder_start_gps),
+                selected = customStart == null,
+                onClick = onUseMyLocation,
+            )
+            ChoiceChip(
+                label = stringResource(R.string.builder_start_map),
+                selected = customStart != null,
+                onClick = onPickOnMap,
+            )
+        }
+        if (customStart != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(
+                    R.string.builder_start_picked,
+                    customStart.lat,
+                    customStart.lon,
+                ),
+                color = TextSecondary,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 

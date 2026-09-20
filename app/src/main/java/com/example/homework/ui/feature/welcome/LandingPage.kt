@@ -82,20 +82,12 @@ fun LandingPage(
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = stringResource(R.string.landing_title_1),
+                    text = stringResource(R.string.app_name),
                     color = ForestGreen,
                     fontFamily = SerifFamily,
                     fontSize = 44.sp,
                     fontWeight = FontWeight.Medium,
                     lineHeight = 48.sp,
-                )
-                Text(
-                    text = stringResource(R.string.landing_title_2),
-                    color = ForestGreen,
-                    fontFamily = SerifFamily,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 38.sp,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(

@@ -65,6 +65,9 @@ fun AdventurePlannerPanel(
     onRebuildPrompt: (String) -> Unit,
     onRebuild: () -> Unit,
     onStartNavigation: () -> Unit,
+    customStart: com.example.homework.entity.map.GeoLocation?,
+    onUseMyLocation: () -> Unit,
+    onPickStartOnMap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -189,6 +192,9 @@ fun AdventurePlannerPanel(
                     onPace = onPace,
                     onAiRequest = onAiRequest,
                     compact = true,
+                    customStart = customStart,
+                    onUseMyLocation = onUseMyLocation,
+                    onPickOnMap = onPickStartOnMap,
                 )
                 Spacer(Modifier.height(12.dp))
                 PlannerButton(

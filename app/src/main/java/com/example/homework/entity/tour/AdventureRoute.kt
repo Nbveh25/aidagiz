@@ -10,6 +10,7 @@ data class AdventureRoute(
     val totalTravelDurationMinutes: Int,
     val totalVisitDurationMinutes: Int,
     val places: List<OsmPlace>,
+    val summary: String? = null,
 )
 
 fun AdventureRoute.toRoutePlaces(): List<RoutePlace> =

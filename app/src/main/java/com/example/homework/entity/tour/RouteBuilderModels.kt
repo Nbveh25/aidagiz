@@ -4,6 +4,7 @@ import com.example.homework.entity.map.GeoLocation
 
 enum class BuilderView {
     Form,
+    PickStart,
     Planner,
 }
 

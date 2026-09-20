@@ -15,6 +15,7 @@ import com.example.homework.core.data.source.api.GuideApiClient
 import com.example.homework.core.data.source.api.GuideApiConfig
 import com.example.homework.core.data.source.api.GuideApiReachability
 import com.example.homework.core.data.source.guide.AiGuideSource
+import com.example.homework.core.data.source.guide.RouteSummarySource
 import com.example.homework.core.data.source.guide.VoiceReadingSource
 import com.example.homework.core.data.source.osrm.OsrmSource
 import com.example.homework.core.data.source.overpass.OverpassSource
@@ -116,6 +117,7 @@ val dataModule = module {
     single { GuideApiReachability() }
     single { UserLocationSource(androidContext()) }
     single { AiGuideSource(androidContext()) }
+    single { RouteSummarySource(androidContext()) }
     singleOf(::AnonymousUserSource)
     singleOf(::PlacesApiSource)
     singleOf(::HistoricalPlacesApiSource)

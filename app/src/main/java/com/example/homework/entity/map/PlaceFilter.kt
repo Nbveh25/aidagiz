@@ -26,7 +26,11 @@ enum class PlaceFilter(val label: String) {
 }
 
 fun filterPlaces(places: List<OsmPlace>, filter: PlaceFilter): List<OsmPlace> =
-    if (filter == PlaceFilter.All) places else places.filter { filter.matches(it.category) }
+    when (filter) {
+        PlaceFilter.All -> places
+        PlaceFilter.History -> places.filter { it.isHistorical }
+        else -> places.filter { filter.matches(it.category) }
+    }
 
 fun placeFilterCount(places: List<OsmPlace>, filter: PlaceFilter): Int =
     filterPlaces(places, filter).size

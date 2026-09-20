@@ -1,6 +1,7 @@
 package com.example.homework.ui.feature.route
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -45,12 +47,15 @@ import com.example.homework.R
 import com.example.homework.core.locale.AppLanguage
 import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.WalkPace
+import com.example.homework.entity.map.PlaceFilter
 import com.example.homework.ui.feature.map.AiGuideFab
 import com.example.homework.ui.feature.map.ArrivalHereDialog
+import com.example.homework.ui.feature.map.HistoricalMapToggle
 import com.example.homework.ui.feature.map.LiveMapViewModel
 import com.example.homework.ui.feature.map.NavigationHud
 import com.example.homework.ui.feature.map.OsmMap
 import com.example.homework.ui.feature.map.PlaceDetailsBottomSheet
+import com.example.homework.ui.feature.map.RouteSummaryOverlay
 import com.example.homework.ui.uikit.component.LanguageToggle
 import com.example.homework.ui.uikit.component.RecenterChip
 import com.example.homework.ui.uikit.theme.Cream
@@ -101,6 +106,18 @@ fun RouteBuilderV2Page(
                 onSubmit = viewModel::submitAdventureRoute,
                 formValid = state.formState.isValid,
                 form = state.formState,
+                customStart = state.customStart,
+                onUseMyLocation = viewModel::useMyLocationAsStart,
+                onPickStartOnMap = viewModel::beginPickStart,
+            )
+        } else if (view == BuilderView.PickStart) {
+            StartPointPickerContent(
+                state = state,
+                onMapLocationSelected = viewModel::setDraftStart,
+                onUserMapInteraction = viewModel::onUserMapInteraction,
+                onRecenter = viewModel::recenter,
+                onCancel = viewModel::cancelPickStart,
+                onConfirm = viewModel::confirmPickStart,
             )
         } else {
             RoutePlannerContent(
@@ -110,6 +127,8 @@ fun RouteBuilderV2Page(
                 onPlaceSelected = viewModel::selectPlace,
                 onUserMapInteraction = viewModel::onUserMapInteraction,
                 onRecenter = viewModel::recenter,
+                onSetHistoricalMap = viewModel::setHistoricalMap,
+                onSetHistoricalYearRange = viewModel::setHistoricalYearRange,
                 onToggleParams = viewModel::toggleParamsExpanded,
                 onDuration = viewModel::setDurationMinutes,
                 onToggleInterest = viewModel::toggleInterest,
@@ -120,6 +139,8 @@ fun RouteBuilderV2Page(
                 onRebuildPrompt = viewModel::setRebuildPrompt,
                 onRebuild = viewModel::rebuildAdventure,
                 onStartNavigation = viewModel::startNavigation,
+                onUseMyLocation = viewModel::useMyLocationAsStart,
+                onPickStartOnMap = viewModel::beginPickStart,
                 onPauseResumeNavigation = viewModel::pauseOrResumeNavigation,
                 onRetryNavigation = viewModel::retryNavigation,
                 onNextNavigationPlace = viewModel::nextNavigationPlace,
@@ -136,6 +157,11 @@ fun RouteBuilderV2Page(
                 onToggleMute = viewModel::toggleGuideSound,
                 onPreviousStop = viewModel::goToPreviousStop,
                 onNextStop = viewModel::goToNextStop,
+                onDismissRouteSummary = viewModel::dismissRouteSummary,
+                onShowRouteSummary = viewModel::showRouteSummary,
+                onToggleRouteSummaryExpanded = viewModel::toggleRouteSummaryExpanded,
+                onToggleRouteSummarySpeech = viewModel::toggleRouteSummarySpeech,
+                onRetryRouteSummarySpeech = viewModel::retryRouteSummarySpeech,
             )
         }
     }
@@ -152,6 +178,9 @@ private fun RouteBuilderFormContent(
     onSubmit: () -> Unit,
     formValid: Boolean,
     form: com.example.homework.entity.tour.RouteFormState,
+    customStart: com.example.homework.entity.map.GeoLocation?,
+    onUseMyLocation: () -> Unit,
+    onPickStartOnMap: () -> Unit,
 ) {
     val keyboardOverlap = rememberKeyboardOverlapPx()
     val formLift by animateIntAsState(keyboardOverlap, label = "formLift")
@@ -213,6 +242,9 @@ private fun RouteBuilderFormContent(
                     onToggleInterest = onToggleInterest,
                     onPace = onPace,
                     onAiRequest = onAiRequest,
+                    customStart = customStart,
+                    onUseMyLocation = onUseMyLocation,
+                    onPickOnMap = onPickStartOnMap,
                 )
                 Spacer(Modifier.height(24.dp))
                 Text(
@@ -242,6 +274,8 @@ private fun RoutePlannerContent(
     onPlaceSelected: (String?) -> Unit,
     onUserMapInteraction: () -> Unit,
     onRecenter: () -> Unit,
+    onSetHistoricalMap: (Boolean) -> Unit,
+    onSetHistoricalYearRange: (com.example.homework.entity.map.YearRange) -> Unit,
     onToggleParams: () -> Unit,
     onDuration: (Int) -> Unit,
     onToggleInterest: (String) -> Unit,
@@ -252,6 +286,8 @@ private fun RoutePlannerContent(
     onRebuildPrompt: (String) -> Unit,
     onRebuild: () -> Unit,
     onStartNavigation: () -> Unit,
+    onUseMyLocation: () -> Unit,
+    onPickStartOnMap: () -> Unit,
     onPauseResumeNavigation: () -> Unit,
     onRetryNavigation: () -> Unit,
     onNextNavigationPlace: () -> Unit,
@@ -268,6 +304,11 @@ private fun RoutePlannerContent(
     onToggleMute: () -> Unit,
     onPreviousStop: () -> Unit,
     onNextStop: () -> Unit,
+    onDismissRouteSummary: () -> Unit,
+    onShowRouteSummary: () -> Unit,
+    onToggleRouteSummaryExpanded: () -> Unit,
+    onToggleRouteSummarySpeech: () -> Unit,
+    onRetryRouteSummarySpeech: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -277,6 +318,7 @@ private fun RoutePlannerContent(
         OsmMap(
                 center = state.mapCenter,
                 user = state.user,
+                start = state.customStart,
                 places = state.mapPlaces,
                 routePlaces = state.routePlaces,
                 selectedPlaceId = state.selectedPlaceId,
@@ -297,6 +339,18 @@ private fun RoutePlannerContent(
                 .statusBarsPadding()
                 .padding(16.dp),
         )
+        if (!state.navigation.isActive) {
+            HistoricalMapToggle(
+                enabled = state.placeFilter == PlaceFilter.History,
+                yearRange = state.historicalYearRange,
+                onEnabledChange = onSetHistoricalMap,
+                onYearRangeChange = onSetHistoricalYearRange,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(start = 16.dp, end = 108.dp, top = 8.dp),
+            )
+        }
         val keyboardOverlap = rememberKeyboardOverlapPx()
         val panelLift by animateIntAsState(keyboardOverlap, label = "plannerLift")
         Column(
@@ -321,6 +375,20 @@ private fun RoutePlannerContent(
                         )
                     }
                 }
+                RouteSummaryOverlay(
+                    text = state.routeSummary,
+                    visible = state.showRouteSummaryPopup,
+                    expanded = state.isRouteSummaryExpanded,
+                    speech = state.routeSummarySpeech,
+                    finished = state.routeSummaryFinished,
+                    showReopen = state.showRouteSummaryReopen,
+                    onDismiss = onDismissRouteSummary,
+                    onReopen = onShowRouteSummary,
+                    onToggleExpanded = onToggleRouteSummaryExpanded,
+                    onToggleSpeech = onToggleRouteSummarySpeech,
+                    onRetrySpeech = onRetryRouteSummarySpeech,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                )
                 if (state.navigation.isActive) {
                     NavigationHud(
                         navigation = state.navigation,
@@ -352,6 +420,9 @@ private fun RoutePlannerContent(
                         onRebuildPrompt = onRebuildPrompt,
                         onRebuild = onRebuild,
                         onStartNavigation = onStartNavigation,
+                        customStart = state.customStart,
+                        onUseMyLocation = onUseMyLocation,
+                        onPickStartOnMap = onPickStartOnMap,
                     )
                 }
             }
@@ -378,7 +449,6 @@ private fun RoutePlannerContent(
                         onToggleMute = onToggleMute,
                         onPreviousStop = onPreviousStop,
                         onNextStop = onNextStop,
-                        onContinueRoute = onNextStop,
                         onRecenter = onRecenter,
                     )
                 }
@@ -388,6 +458,101 @@ private fun RoutePlannerContent(
                 placeName = state.routePlaces.lastOrNull()?.name,
                 onDismiss = onDismissArrivalDialog,
             )
+        }
+    }
+}
+
+@Composable
+private fun StartPointPickerContent(
+    state: com.example.homework.ui.feature.map.state.LiveMapUiState,
+    onMapLocationSelected: (com.example.homework.entity.map.GeoLocation) -> Unit,
+    onUserMapInteraction: () -> Unit,
+    onRecenter: () -> Unit,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    BackHandler(onBack = onCancel)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Cream),
+    ) {
+        OsmMap(
+            center = state.mapCenter,
+            user = null,
+            start = state.draftStart,
+            places = emptyList(),
+            routePlaces = emptyList(),
+            selectedPlaceId = null,
+            routeGeometry = null,
+            routeDirty = false,
+            followUser = false,
+            recenterToken = state.recenterToken,
+            fitRouteToken = 0,
+            onPlaceSelected = {},
+            onUserMapInteraction = onUserMapInteraction,
+            onMapLocationSelected = onMapLocationSelected,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.builder_start_pick_hint),
+                color = ForestGreen,
+                fontFamily = SerifFamily,
+                fontSize = 22.sp,
+                lineHeight = 26.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Cream.copy(alpha = 0.94f))
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            RecenterChip(onClick = onRecenter)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.builder_start_cancel),
+                    color = ForestGreen,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Cream)
+                        .clickable(onClick = onCancel)
+                        .padding(vertical = 16.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+                Text(
+                    text = stringResource(R.string.builder_start_confirm),
+                    color = TextOnForest,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(ForestGreen)
+                        .clickable(onClick = onConfirm)
+                        .padding(vertical = 16.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+            }
         }
     }
 }

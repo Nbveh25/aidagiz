@@ -88,7 +88,6 @@ fun PlaceDetailsBottomSheet(
     onToggleMute: () -> Unit,
     onPreviousStop: () -> Unit,
     onNextStop: () -> Unit,
-    onContinueRoute: () -> Unit,
     onRecenter: () -> Unit,
 ) {
     var detailsExpanded by remember(place.id) { mutableStateOf(false) }
@@ -148,7 +147,6 @@ fun PlaceDetailsBottomSheet(
                 onToggleMute = onToggleMute,
                 onPreviousStop = onPreviousStop,
                 onNextStop = onNextStop,
-                onContinueRoute = onContinueRoute,
                 onRecenter = onRecenter,
                 onBack = {
                     detailsExpanded = true

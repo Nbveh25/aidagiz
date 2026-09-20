@@ -19,9 +19,9 @@ class OsrmSource(
     httpClient: OkHttpClient,
 ) {
     private val client = httpClient.newBuilder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .callTimeout(60, TimeUnit.SECONDS)
+        //.connectTimeout(60, TimeUnit.SECONDS)
+        //.readTimeout(180, TimeUnit.SECONDS)
+        //.callTimeout(60, TimeUnit.SECONDS)
         .build()
 
     suspend fun getRoute(points: List<GeoLocation>, mode: TransportMode): RouteResult =

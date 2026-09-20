@@ -9,7 +9,9 @@ data class YearRange(
     }
 
     companion object {
-        val Default = YearRange(1700, 1900)
+        const val MinYear = 1000
+        const val MaxYear = 2026
+        val Default = YearRange(1500, 1900)
         val Options = listOf(
             YearRange(1500, 1700),
             YearRange(1700, 1900),

@@ -8,4 +8,7 @@ class VoiceReadingRepositoryImpl(
 ) : VoiceReadingRepository {
     override suspend fun synthesize(text: String): ByteArray =
         voiceReadingSource.synthesize(text)
+
+    override suspend fun synthesizeAll(text: String): ByteArray =
+        voiceReadingSource.synthesizeAll(text)
 }

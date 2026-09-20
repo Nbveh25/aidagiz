@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Казань ближе</string>
+    <string name="app_name">әйдәгез</string>
 
     <string name="language_russian">РУ</string>
     <string name="language_tatar">ТТ</string>
@@ -31,6 +31,9 @@
     <string name="filter_museums">Музеи</string>
     <string name="filter_nature">Природа</string>
     <string name="filter_viewpoints">Виды</string>
+    <string name="history_map_toggle">Историческая карта</string>
+    <string name="history_map_hint">Места по году первого упоминания</string>
+    <string name="history_map_years">%1$d–%2$d</string>
 
     <string name="category_mosque">Мечеть</string>
     <string name="category_temple">Храм</string>
@@ -89,9 +92,16 @@
     <string name="guide_speaking">Сейчас рассказывает AI-гид</string>
     <string name="guide_preparing">Готовим озвучку…</string>
     <string name="guide_audio_error">Не удалось озвучить описание</string>
+    <string name="route_summary_title">О маршруте</string>
+    <string name="route_summary_read_all">Читать полностью</string>
+    <string name="route_summary_listen">Прослушать рассказ</string>
+    <string name="route_summary_preparing">Подготавливаем озвучку…</string>
+    <string name="route_summary_replay">Прослушать снова</string>
+    <string name="route_summary_audio_error">Не удалось загрузить аудио</string>
+    <string name="route_summary_retry">Повторить</string>
+    <string name="route_summary_reopen">Рассказ</string>
     <string name="guide_show_text">Показать весь текст</string>
     <string name="guide_hide_text">Свернуть текст</string>
-    <string name="guide_continue">Дальше к маршруту</string>
     <string name="guide_close">Закрыть</string>
     <string name="guide_previous">Предыдущий</string>
     <string name="guide_next">Следующий</string>
@@ -166,21 +176,28 @@
     <string name="year_range_1900_2000">1900–2000</string>
     <string name="error_http">Ошибка %d</string>
 
-    <string name="brand_line_1">Казань</string>
-    <string name="brand_line_2">ближе, чем кажется</string>
+    <string name="brand_line_1">әйдәгез</string>
+    <string name="brand_line_2"></string>
     <string name="nav_home">Главная</string>
     <string name="nav_map">Карта</string>
     <string name="nav_events">Мероприятия</string>
     <string name="nav_tours">Экскурсии</string>
     <string name="nav_profile">Профиль</string>
     <string name="landing_kicker">Культурный маршрут</string>
-    <string name="landing_title_1">Казань</string>
-    <string name="landing_title_2">ближе, чем кажется</string>
+    <string name="landing_title_1">әйдәгез</string>
+    <string name="landing_title_2"></string>
     <string name="landing_subtitle">Тёплый город, живые дворы и маршрут под ваши интересы — без спешки и лишнего шума.</string>
     <string name="landing_cta">Подобрать маршрут</string>
     <string name="landing_cta_map">Открыть карту</string>
     <string name="builder_title_1">Собери прогулку</string>
     <string name="builder_title_2">по Казани</string>
+    <string name="builder_start">Точка старта</string>
+    <string name="builder_start_gps">Моя геолокация</string>
+    <string name="builder_start_map">На карте</string>
+    <string name="builder_start_picked">Старт: %1$.4f, %2$.4f</string>
+    <string name="builder_start_pick_hint">Нажмите на карту, чтобы поставить точку старта</string>
+    <string name="builder_start_confirm">Готово</string>
+    <string name="builder_start_cancel">Отмена</string>
     <string name="builder_duration">Длительность</string>
     <string name="builder_interests">Интересы</string>
     <string name="builder_pace">Темп</string>

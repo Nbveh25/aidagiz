@@ -34,11 +34,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.NearMe
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -94,7 +92,6 @@ fun AudioGuideContent(
     onToggleMute: () -> Unit,
     onPreviousStop: () -> Unit,
     onNextStop: () -> Unit,
-    onContinueRoute: () -> Unit,
     onRecenter: () -> Unit,
 ) {
     var showFullText by remember(place.id) { mutableStateOf(false) }
@@ -148,7 +145,7 @@ fun AudioGuideContent(
                         start = 20.dp,
                         end = 20.dp,
                         top = 10.dp,
-                        bottom = 88.dp,
+                        bottom = 20.dp,
                     ),
             ) {
                 GuideProgressRow(
@@ -254,27 +251,6 @@ fun AudioGuideContent(
                 }
             }
         }
-        ExtendedFloatingActionButton(
-            containerColor = ForestGreenDeep,
-            contentColor = TextOnForest,
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Route,
-                    contentDescription = null,
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.guide_continue),
-                    fontWeight = FontWeight.Medium,
-                )
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
-            onClick = onContinueRoute,
-        )
     }
 }
 

@@ -41,7 +41,10 @@ import com.example.homework.entity.tour.BuilderView
 import com.example.homework.entity.tour.KazanTime
 import com.example.homework.entity.tour.RouteStatus
 import com.example.homework.entity.tour.WalkPace
+import com.example.homework.entity.guide.SpeechStatus
+import com.example.homework.core.data.source.guide.RouteSummarySource
 import com.example.homework.core.data.source.place.PlaceImageSource
+import com.example.homework.core.domain.repository.VoiceReadingRepository
 import com.example.homework.entity.tour.toRoutePlaces
 import com.example.homework.entity.tour.withMockSightDescription
 import com.example.homework.ui.feature.map.state.LiveMapUiState
@@ -78,6 +81,8 @@ class LiveMapViewModel(
     private val buildAdventureRoute: BuildAdventureRouteUseCase,
     private val rebuildAdventureRoute: RebuildAdventureRouteUseCase,
     private val placeImageSource: PlaceImageSource,
+    private val voiceReadingRepository: VoiceReadingRepository,
+    private val routeSummarySource: RouteSummarySource,
     private val strings: AppStrings,
     private val localeStore: LocaleStore,
 ) : ViewModel() {
@@ -95,6 +100,7 @@ class LiveMapViewModel(
     private var corridorImageJob: Job? = null
     private var navigationGuideJob: Job? = null
     private var guideAudioJob: Job? = null
+    private var summaryAudioJob: Job? = null
     private var didCenterOnUser = false
     private var didReloadAroundUser = false
 
@@ -102,6 +108,16 @@ class LiveMapViewModel(
         viewModelScope.launch {
             observeAiGuidePlayback().collect { playback ->
                 _state.update { it.copy(guidePlayback = playback) }
+            }
+        }
+        viewModelScope.launch {
+            routeSummarySource.status.collect { status ->
+                _state.update { it.copy(routeSummarySpeech = status) }
+            }
+        }
+        viewModelScope.launch {
+            routeSummarySource.completed.collect { finished ->
+                _state.update { it.copy(routeSummaryFinished = finished) }
             }
         }
         viewModelScope.launch {
@@ -152,6 +168,13 @@ class LiveMapViewModel(
 
     fun setPlaceFilter(filter: PlaceFilter) {
         _state.update { it.copy(placeFilter = filter) }
+        if (filter == PlaceFilter.History) {
+            refreshHistoricalPlaces()
+        }
+    }
+
+    fun setHistoricalMap(enabled: Boolean) {
+        setPlaceFilter(if (enabled) PlaceFilter.History else PlaceFilter.All)
     }
 
     fun setHistoricalYearRange(range: YearRange) {
@@ -189,6 +212,65 @@ class LiveMapViewModel(
 
     fun setPace(pace: WalkPace) {
         _state.update { it.copy(formState = it.formState.copy(pace = pace)) }
+    }
+
+    fun useMyLocationAsStart() {
+        _state.update {
+            it.copy(
+                customStart = null,
+                draftStart = null,
+                recenterToken = it.recenterToken + 1,
+            )
+        }
+        if (_state.value.routePlaces.isNotEmpty()) {
+            refreshOsrmGeometry()
+        }
+    }
+
+    fun beginPickStart() {
+        _state.update {
+            val origin = if (it.builderView == BuilderView.PickStart) {
+                it.pickStartReturnView
+            } else {
+                it.builderView
+            }
+            it.copy(
+                builderView = BuilderView.PickStart,
+                pickStartReturnView = origin,
+                draftStart = it.customStart ?: KazanCenter,
+                recenterToken = it.recenterToken + 1,
+            )
+        }
+    }
+
+    fun setDraftStart(location: GeoLocation) {
+        _state.update { it.copy(draftStart = location) }
+    }
+
+    fun cancelPickStart() {
+        _state.update {
+            it.copy(
+                builderView = it.pickStartReturnView,
+                draftStart = null,
+            )
+        }
+    }
+
+    fun confirmPickStart() {
+        val start = _state.value.draftStart ?: KazanCenter
+        val returnView = _state.value.pickStartReturnView
+        _state.update {
+            it.copy(
+                customStart = start,
+                draftStart = null,
+                builderView = returnView,
+                recenterToken = it.recenterToken + 1,
+            )
+        }
+        refreshPlaces(around = start, force = true)
+        if (_state.value.routePlaces.isNotEmpty()) {
+            refreshOsrmGeometry()
+        }
     }
 
     fun setAiRequest(value: String) {
@@ -253,7 +335,7 @@ class LiveMapViewModel(
             try {
                 runCatching { ensureAnonymousUser() }
                 val rebuilt = rebuildAdventureRoute(
-                    userLocation = _state.value.user ?: KazanCenter,
+                    userLocation = _state.value.routeStart,
                     visitedPlaces = visited,
                     remainingPlaces = remaining,
                     aiRequest = prompt,
@@ -312,7 +394,7 @@ class LiveMapViewModel(
     fun buildRoute() = requestOsrmRoute(fromNavigation = false)
 
     fun optimizeAndBuild() {
-        val user = _state.value.user ?: _state.value.mapCenter
+        val user = _state.value.routeStart
         val mode = _state.value.transportMode
         if (!mode.isRoutable || _state.value.routePlaces.size < 2) return
         viewModelScope.launch {
@@ -401,6 +483,33 @@ class LiveMapViewModel(
         _state.update { it.copy(isGuideOpen = false) }
     }
 
+    fun dismissRouteSummary() {
+        routeSummarySource.pause()
+        _state.update { it.copy(isRouteSummaryVisible = false, isRouteSummaryExpanded = false) }
+    }
+
+    fun showRouteSummary() {
+        if (_state.value.routeSummary.isBlank()) return
+        _state.update { it.copy(isRouteSummaryVisible = true) }
+    }
+
+    fun toggleRouteSummaryExpanded() {
+        _state.update { it.copy(isRouteSummaryExpanded = !it.isRouteSummaryExpanded) }
+    }
+
+    fun toggleRouteSummarySpeech() {
+        when (_state.value.routeSummarySpeech) {
+            SpeechStatus.Idle, SpeechStatus.Loading -> return
+            SpeechStatus.Error -> prefetchSummaryAudio(_state.value.routeSummary)
+            SpeechStatus.Ready, SpeechStatus.Playing, SpeechStatus.Paused -> {
+                if (_state.value.guidePlayback.isPlaying) controlAiGuide.togglePlayback()
+                routeSummarySource.togglePlayback()
+            }
+        }
+    }
+
+    fun retryRouteSummarySpeech() = prefetchSummaryAudio(_state.value.routeSummary)
+
     fun toggleGuidePlayback() = controlAiGuide.togglePlayback()
 
     fun seekGuide(progress: Float) = controlAiGuide.seek(progress)
@@ -428,7 +537,7 @@ class LiveMapViewModel(
                 val form = _state.value.formState
                 val created = buildAdventureRoute(
                     form.toRequest(
-                        location = _state.value.user ?: KazanCenter,
+                        location = _state.value.routeStart,
                         startAt = KazanTime.nowIso(),
                     ),
                 )
@@ -457,6 +566,7 @@ class LiveMapViewModel(
                     errorMessage = strings.get(R.string.error_build_route),
                 )
             }
+            bindRouteSummary(null)
             return
         }
         getTourProgress.bindStops(places.map { it.place })
@@ -472,9 +582,10 @@ class LiveMapViewModel(
                 placeFilter = PlaceFilter.All,
             )
         }
+        bindRouteSummary(route.summary)
         refreshOsrmGeometry()
         if (_state.value.places.isEmpty()) {
-            refreshPlaces(_state.value.user ?: KazanCenter)
+            refreshPlaces(_state.value.routeStart)
         }
     }
 
@@ -544,7 +655,7 @@ class LiveMapViewModel(
     }
 
     private fun buildRoutePoints(fromNavigation: Boolean): List<GeoLocation> {
-        val start = _state.value.user ?: _state.value.mapCenter
+        val start = _state.value.routeStart
         val stops = if (fromNavigation) navigator.remainingPlaces() else _state.value.routePlaces
         return listOf(start) + stops.map { it.location }
     }
@@ -641,15 +752,20 @@ class LiveMapViewModel(
                 val shouldCenter = !didCenterOnUser
                 if (shouldCenter) didCenterOnUser = true
                 _state.update {
+                    val skipRecenter = it.customStart != null || it.builderView == BuilderView.PickStart
                     it.copy(
                         user = location,
                         permissionGranted = true,
-                        recenterToken = if (shouldCenter) it.recenterToken + 1 else it.recenterToken,
+                        recenterToken = if (shouldCenter && !skipRecenter) {
+                            it.recenterToken + 1
+                        } else {
+                            it.recenterToken
+                        },
                     )
                 }
                 if (!didReloadAroundUser) {
                     didReloadAroundUser = true
-                    refreshPlaces(around = location, force = true)
+                    refreshPlaces(around = _state.value.routeStart, force = true)
                 }
                 if (navigator.state.isActive) {
                     val previousStatus = navigator.state.status
@@ -721,7 +837,7 @@ class LiveMapViewModel(
         historicalJob = viewModelScope.launch {
             val years = _state.value.historicalYearRange
             val nearby = _state.value.places.filter { !it.isHistorical }
-            val historicalResult = loadHistoricalPlaces(_state.value.user, years)
+            val historicalResult = loadHistoricalPlaces(_state.value.routeStart, years)
             val merged = mergePlaces(nearby, historicalResult.getOrDefault(emptyList()))
             _state.update { state ->
                 val historicalError = historicalErrorMessage(nearby, historicalResult)
@@ -757,7 +873,7 @@ class LiveMapViewModel(
         around: GeoLocation?,
         years: YearRange,
     ): Result<List<OsmPlace>> {
-        val origin = around ?: _state.value.user ?: KazanCenter
+        val origin = around ?: _state.value.routeStart
         val localizedName = strings.get(R.string.historical_place_name)
         return runCatching {
             getHistoricalPlaces(origin, HISTORICAL_RADIUS_METERS, years)
@@ -942,6 +1058,7 @@ class LiveMapViewModel(
         autoplay: Boolean,
         stillEnabled: () -> Boolean = { true },
     ) {
+        routeSummarySource.pause()
         guideAudioJob?.cancel()
         guideAudioJob = viewModelScope.launch {
             _state.update { it.copy(isPreparingGuideAudio = true) }
@@ -971,6 +1088,54 @@ class LiveMapViewModel(
                 controlAiGuide.togglePlayback()
             }
         }
+    }
+
+    private fun bindRouteSummary(raw: String?) {
+        val text = raw?.trim().orEmpty()
+        if (text.isEmpty()) {
+            summaryAudioJob?.cancel()
+            routeSummarySource.reset()
+            _state.update {
+                it.copy(
+                    routeSummary = "",
+                    isRouteSummaryVisible = false,
+                    isRouteSummaryExpanded = false,
+                    routeSummarySpeech = SpeechStatus.Idle,
+                    routeSummaryFinished = false,
+                )
+            }
+            return
+        }
+        val reuse = text == _state.value.routeSummary && routeSummarySource.hasPrepared(text)
+        _state.update {
+            it.copy(
+                routeSummary = text,
+                isRouteSummaryVisible = true,
+                isRouteSummaryExpanded = false,
+            )
+        }
+        if (!reuse) prefetchSummaryAudio(text)
+    }
+
+    private fun prefetchSummaryAudio(text: String) {
+        if (text.isBlank()) return
+        summaryAudioJob?.cancel()
+        routeSummarySource.reset()
+        routeSummarySource.setLoading()
+        summaryAudioJob = viewModelScope.launch {
+            val result = runCatching {
+                val wav = voiceReadingRepository.synthesizeAll(text)
+                routeSummarySource.prepare(text, wav)
+            }.onFailure { error -> if (error is CancellationException) throw error }
+            if (!isActive) return@launch
+            if (result.isFailure) routeSummarySource.setError()
+        }
+    }
+
+    override fun onCleared() {
+        summaryAudioJob?.cancel()
+        routeSummarySource.release()
+        super.onCleared()
     }
 
     private fun currentNavigationPlace(): OsmPlace? =

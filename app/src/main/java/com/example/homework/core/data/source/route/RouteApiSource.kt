@@ -78,7 +78,8 @@ class RouteApiSource(
         val places = buildList {
             for (index in 0 until placesJson.length()) {
                 val item = placesJson.optJSONObject(index) ?: continue
-                add(item.toRoutePlace())
+                val place = item.toRoutePlace() ?: continue
+                add(place)
             }
         }
         return AdventureRoute(
@@ -88,25 +89,31 @@ class RouteApiSource(
             totalTravelDurationMinutes = optInt("totalTravelDurationMinutes"),
             totalVisitDurationMinutes = optInt("totalVisitDurationMinutes"),
             places = places,
+            summary = stringOrNull("summary"),
         )
     }
 
-    private fun JSONObject.toRoutePlace(): OsmPlace = OsmPlace(
-        id = optString("id"),
-        name = optString("name").ifBlank { optString("type") },
-        lat = getDouble("lat"),
-        lon = getDouble("lon"),
-        category = PlaceCategory.fromApiType(optString("type")),
-        description = optString("description"),
-        address = stringOrNull("address"),
-        imageUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("imageUrl")),
-        categoryIconUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("categoryIconUrl")),
-        stopOrder = intOrNull("order"),
-        arrivalAt = stringOrNull("arrivalAt"),
-        departureAt = stringOrNull("departureAt"),
-        travelDurationMinutes = intOrNull("travelDurationMinutes"),
-        visitDurationMinutes = intOrNull("visitDurationMinutes"),
-    )
+    private fun JSONObject.toRoutePlace(): OsmPlace? {
+        val lat = optDouble("lat", Double.NaN)
+        val lon = optDouble("lon", Double.NaN)
+        if (lat.isNaN() || lon.isNaN()) return null
+        return OsmPlace(
+            id = optString("id"),
+            name = optString("name").ifBlank { optString("type") },
+            lat = lat,
+            lon = lon,
+            category = PlaceCategory.fromApiType(optString("type")),
+            description = optString("description"),
+            address = stringOrNull("address"),
+            imageUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("imageUrl")),
+            categoryIconUrl = GuideApiConfig.rewriteMediaUrl(stringOrNull("categoryIconUrl")),
+            stopOrder = intOrNull("order"),
+            arrivalAt = stringOrNull("arrivalAt"),
+            departureAt = stringOrNull("departureAt"),
+            travelDurationMinutes = intOrNull("travelDurationMinutes"),
+            visitDurationMinutes = intOrNull("visitDurationMinutes"),
+        )
+    }
 
     private fun GeoLocation.toJson() = JSONObject()
         .put("lat", lat)

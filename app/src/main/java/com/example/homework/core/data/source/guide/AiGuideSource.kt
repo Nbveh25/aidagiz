@@ -71,6 +71,9 @@ class AiGuideSource(
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
         } else {
+            val nearEnd = mediaPlayer.duration > 0 &&
+                mediaPlayer.currentPosition >= mediaPlayer.duration - 250
+            if (nearEnd) mediaPlayer.seekTo(0)
             mediaPlayer.start()
         }
         playbackState.update {

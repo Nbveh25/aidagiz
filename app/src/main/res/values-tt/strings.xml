@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Казан якынрак</string>
+    <string name="app_name">әйдәгез</string>
 
     <string name="language_russian">РУ</string>
     <string name="language_tatar">ТТ</string>
@@ -29,6 +29,9 @@
     <string name="filter_museums">Музейлар</string>
     <string name="filter_nature">Табигать</string>
     <string name="filter_viewpoints">Күренешләр</string>
+    <string name="history_map_toggle">Тарихи карта</string>
+    <string name="history_map_hint">Беренче телгә алу елы буенча</string>
+    <string name="history_map_years">%1$d–%2$d</string>
 
     <string name="category_mosque">Мәчет</string>
     <string name="category_temple">Гыйбадәтханә</string>
@@ -87,9 +90,16 @@
     <string name="guide_speaking">Хәзер AI-гид сөйли</string>
     <string name="guide_preparing">Тавыш әзерләнә…</string>
     <string name="guide_audio_error">Тасвирламаны тыңлатып булмады</string>
+    <string name="route_summary_title">Маршрут турында</string>
+    <string name="route_summary_read_all">Тулысынча укырга</string>
+    <string name="route_summary_listen">Хикәяне тыңларга</string>
+    <string name="route_summary_preparing">Тавыш әзерләнә…</string>
+    <string name="route_summary_replay">Янәдән тыңларга</string>
+    <string name="route_summary_audio_error">Аудионы йөкләп булмады</string>
+    <string name="route_summary_retry">Кабатларга</string>
+    <string name="route_summary_reopen">Хикәя</string>
     <string name="guide_show_text">Барлык текстны күрсәтү</string>
     <string name="guide_hide_text">Текстны җыю</string>
-    <string name="guide_continue">Маршрут буенча алга</string>
     <string name="guide_close">Ябу</string>
     <string name="guide_previous">Алдагы</string>
     <string name="guide_next">Киләсе</string>
@@ -164,21 +174,28 @@
     <string name="year_range_1900_2000">1900–2000</string>
     <string name="error_http">Хата %d</string>
 
-    <string name="brand_line_1">Казан</string>
-    <string name="brand_line_2">якынрак, караганчы</string>
+    <string name="brand_line_1">әйдәгез</string>
+    <string name="brand_line_2"></string>
     <string name="nav_home">Баш бит</string>
     <string name="nav_map">Карта</string>
     <string name="nav_events">Чаралар</string>
     <string name="nav_tours">Экскурсияләр</string>
     <string name="nav_profile">Профиль</string>
     <string name="landing_kicker">Мәдәни маршрут</string>
-    <string name="landing_title_1">Казан</string>
-    <string name="landing_title_2">якынрак, караганчы</string>
+    <string name="landing_title_1">әйдәгез</string>
+    <string name="landing_title_2"></string>
     <string name="landing_subtitle">Җылы шәһәр, ишегаллары һәм сезнең кызыксынуларга туры килгән җәяү маршруты.</string>
     <string name="landing_cta">Маршрут сайлау</string>
     <string name="landing_cta_map">Картаны ачу</string>
     <string name="builder_title_1">Ял көнен җый</string>
     <string name="builder_title_2">Казан буенча</string>
+    <string name="builder_start">Башлангыч нокта</string>
+    <string name="builder_start_gps">Минем геолокация</string>
+    <string name="builder_start_map">Картада</string>
+    <string name="builder_start_picked">Старт: %1$.4f, %2$.4f</string>
+    <string name="builder_start_pick_hint">Старт кую өчен картага басыгыз</string>
+    <string name="builder_start_confirm">Әзер</string>
+    <string name="builder_start_cancel">Кире кагу</string>
     <string name="builder_duration">Озынлык</string>
     <string name="builder_interests">Кызыксынулар</string>
     <string name="builder_pace">Темп</string>

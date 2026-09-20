@@ -103,6 +103,7 @@ fun LiveMapScreen(
         onPlaceSelected = viewModel::selectPlace,
         onUserMapInteraction = viewModel::onUserMapInteraction,
         onSetPlaceFilter = viewModel::setPlaceFilter,
+        onSetHistoricalMap = viewModel::setHistoricalMap,
         onSetHistoricalYearRange = viewModel::setHistoricalYearRange,
         onAllowPermission = {
             permissionLauncher.launch(
@@ -159,6 +160,11 @@ fun LiveMapScreen(
         onToggleMute = viewModel::toggleGuideSound,
         onPreviousStop = viewModel::goToPreviousStop,
         onNextStop = viewModel::goToNextStop,
+        onDismissRouteSummary = viewModel::dismissRouteSummary,
+        onShowRouteSummary = viewModel::showRouteSummary,
+        onToggleRouteSummaryExpanded = viewModel::toggleRouteSummaryExpanded,
+        onToggleRouteSummarySpeech = viewModel::toggleRouteSummarySpeech,
+        onRetryRouteSummarySpeech = viewModel::retryRouteSummarySpeech,
         language = resolvedLanguage,
         onLanguageSelect = resolveLanguageSelect,
         modifier = modifier,
@@ -172,6 +178,7 @@ fun LiveMapContent(
     onPlaceSelected: (String?) -> Unit = {},
     onUserMapInteraction: () -> Unit = {},
     onSetPlaceFilter: (PlaceFilter) -> Unit = {},
+    onSetHistoricalMap: (Boolean) -> Unit = {},
     onSetHistoricalYearRange: (YearRange) -> Unit = {},
     onAllowPermission: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
@@ -202,6 +209,11 @@ fun LiveMapContent(
     onToggleMute: () -> Unit = {},
     onPreviousStop: () -> Unit = {},
     onNextStop: () -> Unit = {},
+    onDismissRouteSummary: () -> Unit = {},
+    onShowRouteSummary: () -> Unit = {},
+    onToggleRouteSummaryExpanded: () -> Unit = {},
+    onToggleRouteSummarySpeech: () -> Unit = {},
+    onRetryRouteSummarySpeech: () -> Unit = {},
     language: AppLanguage = AppLanguage.Russian,
     onLanguageSelect: (AppLanguage) -> Unit = {},
     showLanguageToggle: Boolean = true,
@@ -211,6 +223,7 @@ fun LiveMapContent(
         OsmMap(
             center = state.mapCenter,
             user = state.user,
+            start = state.customStart,
             places = state.mapPlaces,
             routePlaces = state.routePlaces,
             selectedPlaceId = state.selectedPlaceId,
@@ -258,14 +271,18 @@ fun LiveMapContent(
                 }
             }
             if (!state.navigation.isActive) {
-                PlaceFilterBar(
-                    places = state.places,
-                    selected = state.placeFilter,
-                    onSelect = onSetPlaceFilter,
-                )
-                HistoricalYearBar(
-                    selected = state.historicalYearRange,
-                    onSelect = onSetHistoricalYearRange,
+                if (state.placeFilter != PlaceFilter.History) {
+                    PlaceFilterBar(
+                        places = state.places,
+                        selected = state.placeFilter,
+                        onSelect = onSetPlaceFilter,
+                    )
+                }
+                HistoricalMapToggle(
+                    enabled = state.placeFilter == PlaceFilter.History,
+                    yearRange = state.historicalYearRange,
+                    onEnabledChange = onSetHistoricalMap,
+                    onYearRangeChange = onSetHistoricalYearRange,
                 )
             }
             if (!state.permissionGranted) {
@@ -301,6 +318,19 @@ fun LiveMapContent(
                     )
                 }
             }
+            RouteSummaryOverlay(
+                text = state.routeSummary,
+                visible = state.showRouteSummaryPopup,
+                expanded = state.isRouteSummaryExpanded,
+                speech = state.routeSummarySpeech,
+                finished = state.routeSummaryFinished,
+                showReopen = state.showRouteSummaryReopen,
+                onDismiss = onDismissRouteSummary,
+                onReopen = onShowRouteSummary,
+                onToggleExpanded = onToggleRouteSummaryExpanded,
+                onToggleSpeech = onToggleRouteSummarySpeech,
+                onRetrySpeech = onRetryRouteSummarySpeech,
+            )
             if (state.navigation.isActive) {
                 NavigationHud(
                     navigation = state.navigation,
@@ -355,7 +385,6 @@ fun LiveMapContent(
                     onToggleMute = onToggleMute,
                     onPreviousStop = onPreviousStop,
                     onNextStop = onNextStop,
-                    onContinueRoute = onNextStop,
                     onRecenter = onRecenter,
                 )
             }
