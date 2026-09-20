@@ -20,7 +20,6 @@ MediaPlayer              ->  экран AudioGuideContent
 | --- | --- |
 | Маршрут / DataSet / `POST /route-adventure` | Поле `description` в ответе, мапится в `OsmPlace.description` |
 | Историческое место | После `GET /historical-places/{placeId}` story кладётся в `OsmPlace.description` |
-| Демо-точки / точки у коридора маршрута | Уже заполненный `description`, иначе короткий mock (`withMockSightDescription`) |
 
 На экране гида показывается тот же текст: `guideNarration.text` == `place.description`.
 

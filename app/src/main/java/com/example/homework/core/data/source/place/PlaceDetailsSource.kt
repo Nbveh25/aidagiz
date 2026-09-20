@@ -19,23 +19,18 @@ class PlaceDetailsSource {
         category = place.category,
     )
 
-    private fun photoRes(place: OsmPlace): Int = when (place.id) {
-        "demo-pyramid" -> R.drawable.photo_kremlin
-        "demo-ivanovsky" -> R.drawable.photo_kul_sharif
-        "demo-bauman" -> R.drawable.photo_bauman
-        else -> when (place.category) {
-            PlaceCategory.Mosque, PlaceCategory.Temple -> R.drawable.photo_kul_sharif
-            PlaceCategory.Park, PlaceCategory.Garden -> R.drawable.photo_sloboda
-            PlaceCategory.Cafe, PlaceCategory.Restaurant -> R.drawable.photo_bauman
-            PlaceCategory.Historic, PlaceCategory.Attraction, PlaceCategory.Museum,
-            PlaceCategory.Gallery, PlaceCategory.Viewpoint,
-            -> R.drawable.photo_kremlin
-            else -> when (place.id.hashCode().and(3)) {
-                0 -> R.drawable.photo_kremlin
-                1 -> R.drawable.photo_kul_sharif
-                2 -> R.drawable.photo_bauman
-                else -> R.drawable.photo_sloboda
-            }
+    private fun photoRes(place: OsmPlace): Int = when (place.category) {
+        PlaceCategory.Mosque, PlaceCategory.Temple -> R.drawable.photo_kul_sharif
+        PlaceCategory.Park, PlaceCategory.Garden -> R.drawable.photo_sloboda
+        PlaceCategory.Cafe, PlaceCategory.Restaurant -> R.drawable.photo_bauman
+        PlaceCategory.Historic, PlaceCategory.Attraction, PlaceCategory.Museum,
+        PlaceCategory.Gallery, PlaceCategory.Viewpoint,
+        -> R.drawable.photo_kremlin
+        else -> when (place.id.hashCode().and(3)) {
+            0 -> R.drawable.photo_kremlin
+            1 -> R.drawable.photo_kul_sharif
+            2 -> R.drawable.photo_bauman
+            else -> R.drawable.photo_sloboda
         }
     }
 

@@ -46,7 +46,6 @@ import com.example.homework.core.data.source.guide.RouteSummarySource
 import com.example.homework.core.data.source.place.PlaceImageSource
 import com.example.homework.core.domain.repository.VoiceReadingRepository
 import com.example.homework.entity.tour.toRoutePlaces
-import com.example.homework.entity.tour.withMockSightDescription
 import com.example.homework.ui.feature.map.state.LiveMapUiState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -702,9 +701,7 @@ class LiveMapViewModel(
         val rawPlace = _state.value.places.firstOrNull { it.id == placeId }
             ?: _state.value.routePlaces.firstOrNull { it.id == placeId }?.place
             ?: return
-        val alongCorridor = rawPlace.id.startsWith("demo-") ||
-            _state.value.mapPlaces.any { it.id == rawPlace.id }
-        val place = if (alongCorridor) rawPlace.withMockSightDescription() else rawPlace
+        val place = rawPlace
         val historicalDetails = if (place.isHistorical) getHistoricalPlaceDetails.cached(place.id) else null
         val displayPlace = historicalDetails?.let { enrichHistoricalPlace(place, it) } ?: place
         val loadingHistorical = place.isHistorical &&
@@ -725,7 +722,7 @@ class LiveMapViewModel(
                 isLoadingHistoricalDetails = loadingHistorical,
             )
         }
-        if (alongCorridor && place.imageUrl.isNullOrBlank()) {
+        if (place.imageUrl.isNullOrBlank() && _state.value.mapPlaces.any { it.id == place.id }) {
             viewModelScope.launch { applyUniqueImage(place.id) }
         }
         if (place.isHistorical) {
